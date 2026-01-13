@@ -2,15 +2,20 @@
 
 import {useState} from 'react'
 import './page.css'
+import PlaylistModal from './components/PlaylistModal'
 
 export default function () {
   const [play, setPlay] = useState(false)
+  const [modal, setModal] = useState(false)
 
   return (
     <div className="main-bg">
-      <div className="music-playlist-add">
-        <div className="plus-btn"></div>
-      </div>
+      {!modal && (
+        <div className="music-playlist-add" onClick={() => setModal(true)}>
+          <div className="plus-btn"></div>
+        </div>
+      )}
+      {modal && <PlaylistModal onClose={() => setModal(false)} />}
       <div className="music-var">
         <div className="music-var-title">노래 제목 들어갈 곳</div>
         <div className="progress-container">

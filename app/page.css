@@ -10,6 +10,17 @@ body {
   position: relative;
 }
 
+.playlist-album-title {
+  position: absolute;
+  bottom: 8%;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 20%;
+  height: 20%;
+}
 .music-playlist-add {
   position: absolute;
   top: 50%;
@@ -22,6 +33,42 @@ body {
   cursor: pointer;
 }
 
+.playlist-zone {
+  position: relative;
+  width: 100%;
+  height: 100%;
+}
+.playlist-album {
+  background-color: antiquewhite;
+  aspect-ratio: 1 / 1;
+  width: 25%;
+  border-radius: 3%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+  cursor: pointer;
+}
+.center {
+  position: absolute;
+  left: 50%;
+  top: 48%;
+  transform: translate(-50%, -30%);
+}
+.left {
+  position: absolute;
+  width: 20%;
+  left: 15%;
+  top: 30%;
+  transform: translate(-50%, -30%);
+}
+.right {
+  position: absolute;
+  width: 20%;
+  left: 85%;
+  top: 30%;
+  transform: translate(-50%, -30%);
+}
 .plus-btn::before,
 .plus-btn::after {
   content: '';
@@ -108,21 +155,4 @@ body {
   display: block;
   width: 80%;
   height: 80%;
-}
-
-.playlist-album {
-  background-color: antiquewhite;
-  aspect-ratio: 1 / 1;
-  width: 25%;
-  border-radius: 3%;
-  position: absolute;
-  left: 50%;
-  top: 50%;
-  transform: translate(-50%, -30%);
-  width: 25%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-direction: column;
-  cursor: pointer;
 }

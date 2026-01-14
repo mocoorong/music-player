@@ -9,24 +9,60 @@ export default function Home() {
   const [play, setPlay] = useState(false)
   const [modal, setModal] = useState(false)
   const [playlists, setPlaylists] = useState<Playlist[]>([])
+  const [activeIndex, setActiveIndex] = useState<number>(-1)
+
+  const center = activeIndex >= 0 ? playlists[activeIndex] : null
+  const left = activeIndex > 0 ? playlists[activeIndex - 1] : null
+  const rightAlbum =
+    activeIndex < playlists.length - 1 ? playlists[activeIndex + 1] : null
 
   return (
     <div className="main-bg">
       <div className="playlist-zone">
-        {playlists.map((playlist) => (
-          <div key={playlist.id} className="playlist-album">
-            <div className="playlist-album-cover">🎵</div>
-            <div className="playlist-album-title">{playlist.title}</div>
+        {center && <div className="playlist-album-title">{center.title}</div>}
+        {left && (
+          <div
+            className="playlist-album left"
+            onClick={() => setActiveIndex((prev) => Math.max(prev - 1, 0))}
+          >
+            첫 곡 썸네일
           </div>
-        ))}
-        <div className="music-playlist-add" onClick={() => setModal(true)}>
-          <div className="plus-btn"></div>
-        </div>
+        )}
+        {center && (
+          <div className="playlist-album center">
+            <div className="playlist-album-cover">첫 곡 썸네일</div>
+          </div>
+        )}
+        {rightAlbum ? (
+          <div
+            className="playlist-album right"
+            onClick={() =>
+              setActiveIndex((prev) => Math.min(prev + 1, playlists.length - 1))
+            }
+          >
+            첫 곡 썸네일
+          </div>
+        ) : (
+          <div
+            className={`music-playlist-add ${
+              playlists.length === 0 ? 'center' : 'right'
+            }`}
+            onClick={() => setModal(true)}
+          >
+            <div className="plus-btn" />
+          </div>
+        )}
       </div>
       {modal && (
         <PlaylistModal
           onClose={() => setModal(false)}
-          onCreate={(playlist) => setPlaylists((prev) => [...prev, playlist])}
+          onCreate={(playlist) =>
+            setPlaylists((prev) => {
+              const next = [...prev, playlist]
+              setActiveIndex(next.length - 1)
+              return next
+            })
+          }
         />
       )}
       <div className="music-var">

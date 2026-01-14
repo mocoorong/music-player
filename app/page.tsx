@@ -3,19 +3,32 @@
 import {useState} from 'react'
 import './page.css'
 import PlaylistModal from './components/PlaylistModal'
+import type {Playlist} from './types/playlist'
 
-export default function () {
+export default function Home() {
   const [play, setPlay] = useState(false)
   const [modal, setModal] = useState(false)
+  const [playlists, setPlaylists] = useState<Playlist[]>([])
 
   return (
     <div className="main-bg">
-      {!modal && (
+      <div className="playlist-zone">
+        {playlists.map((playlist) => (
+          <div key={playlist.id} className="playlist-album">
+            <div className="playlist-album-cover">🎵</div>
+            <div className="playlist-album-title">{playlist.title}</div>
+          </div>
+        ))}
         <div className="music-playlist-add" onClick={() => setModal(true)}>
           <div className="plus-btn"></div>
         </div>
+      </div>
+      {modal && (
+        <PlaylistModal
+          onClose={() => setModal(false)}
+          onCreate={(playlist) => setPlaylists((prev) => [...prev, playlist])}
+        />
       )}
-      {modal && <PlaylistModal onClose={() => setModal(false)} />}
       <div className="music-var">
         <div className="music-var-title">노래 제목 들어갈 곳</div>
         <div className="progress-container">

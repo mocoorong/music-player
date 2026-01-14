@@ -1,14 +1,42 @@
 import './PlaylistModal.css'
 import type {Playlist} from '../types/playlist'
-import {useState} from 'react'
+import {useState, useEffect} from 'react'
 
 type PlaylistModalProps = {
+  playlist: Playlist | null
   onClose: () => void
   onCreate: (playlist: Playlist) => void
+  onUpdate: (playlist: Playlist) => void
 }
 
-export default function PlaylistModal({onClose, onCreate}: PlaylistModalProps) {
+export default function PlaylistModal({
+  playlist,
+  onClose,
+  onCreate,
+  onUpdate,
+}: PlaylistModalProps) {
   const [title, setTitle] = useState('')
+  const editMode = Boolean(playlist)
+
+  const handleSubmit = () => {
+    if (!title.trim()) return
+
+    if (editMode && playlist) {
+      onUpdate({...playlist, title})
+    } else {
+      onCreate({
+        id: Date.now().toString(),
+        title,
+        songs: [],
+      })
+    }
+
+    onClose()
+  }
+
+  useEffect(() => {
+    setTitle(playlist?.title ?? '')
+  }, [playlist])
   return (
     <div className="modal-bg" onClick={onClose}>
       <div className="modal-inner" onClick={(e) => e.stopPropagation()}>
@@ -19,21 +47,8 @@ export default function PlaylistModal({onClose, onCreate}: PlaylistModalProps) {
             value={title}
             onChange={(e) => setTitle(e.target.value)}
           ></input>
-          <button
-            className="playlist-create-btn"
-            onClick={() => {
-              if (!title.trim()) return
-
-              onCreate({
-                id: Date.now().toString(),
-                title,
-                songs: [],
-              })
-
-              onClose()
-            }}
-          >
-            저장
+          <button className="playlist-create-btn" onClick={handleSubmit}>
+            {editMode ? '수정 완료' : '저장'}
           </button>
         </div>
         <div className="modal-inner-right">

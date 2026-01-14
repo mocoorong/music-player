@@ -10,6 +10,7 @@ export default function Home() {
   const [modal, setModal] = useState(false)
   const [playlists, setPlaylists] = useState<Playlist[]>([])
   const [activeIndex, setActiveIndex] = useState<number>(-1)
+  const [editPlaylist, setEditPlaylist] = useState<Playlist | null>(null)
 
   const center = activeIndex >= 0 ? playlists[activeIndex] : null
   const left = activeIndex > 0 ? playlists[activeIndex - 1] : null
@@ -29,7 +30,13 @@ export default function Home() {
           </div>
         )}
         {center && (
-          <div className="playlist-album center">
+          <div
+            className="playlist-album center"
+            onClick={() => {
+              setEditPlaylist(center)
+              setModal(true)
+            }}
+          >
             <div className="playlist-album-cover">첫 곡 썸네일</div>
           </div>
         )}
@@ -55,7 +62,11 @@ export default function Home() {
       </div>
       {modal && (
         <PlaylistModal
-          onClose={() => setModal(false)}
+          playlist={editPlaylist}
+          onClose={() => {
+            setModal(false)
+            setEditPlaylist(null)
+          }}
           onCreate={(playlist) =>
             setPlaylists((prev) => {
               const next = [...prev, playlist]
@@ -63,10 +74,20 @@ export default function Home() {
               return next
             })
           }
+          onUpdate={(updated) => {
+            setPlaylists((prev) =>
+              prev.map((p) => (p.id === updated.id ? updated : p))
+            )
+          }}
         />
       )}
       <div className="music-var">
-        <div className="music-var-title">노래 제목 들어갈 곳</div>
+        {center ? (
+          <div className="music-var-title">노래제목들어갈곳</div>
+        ) : (
+          <div className="music-var-title">플레이 리스트를 선택해주세요</div>
+        )}
+
         <div className="progress-container">
           <div className="progress-bar"></div>
         </div>

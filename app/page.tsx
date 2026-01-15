@@ -24,9 +24,18 @@ export default function Home() {
         {left && (
           <div
             className="playlist-album left"
-            onClick={() => setActiveIndex((prev) => Math.max(prev - 1, 0))}
+            onClick={() =>
+              setActiveIndex((prev) => {
+                if (prev > 0) return prev - 1
+                return prev
+              })
+            }
           >
-            첫 곡 썸네일
+            {left.songs.length > 0 ? (
+              <img src={left.songs[0].thumbnail} />
+            ) : (
+              '곡을 추가해 주세요'
+            )}
           </div>
         )}
         {center && (
@@ -37,17 +46,31 @@ export default function Home() {
               setModal(true)
             }}
           >
-            <div className="playlist-album-cover">첫 곡 썸네일</div>
+            <div className="playlist-album-cover">
+              {' '}
+              {center.songs.length > 0 ? (
+                <img src={center.songs[0].thumbnail} />
+              ) : (
+                '곡을 추가해 주세요'
+              )}
+            </div>
           </div>
         )}
         {rightAlbum ? (
           <div
             className="playlist-album right"
             onClick={() =>
-              setActiveIndex((prev) => Math.min(prev + 1, playlists.length - 1))
+              setActiveIndex((prev) => {
+                if (prev < playlists.length - 1) return prev + 1
+                return prev
+              })
             }
           >
-            첫 곡 썸네일
+            {rightAlbum.songs.length > 0 ? (
+              <img src={rightAlbum.songs[0].thumbnail} />
+            ) : (
+              '곡을 추가해 주세요'
+            )}
           </div>
         ) : (
           <div

@@ -17,6 +17,27 @@ export default function Home() {
   const rightAlbum =
     activeIndex < playlists.length - 1 ? playlists[activeIndex + 1] : null
 
+  const deletePlaylist = (id: string) => {
+    setPlaylists((prev) => {
+      const targetIndex = prev.findIndex((p) => p.id === id)
+      const nextPlaylists = prev.filter((p) => p.id !== id)
+
+      setActiveIndex((currentIdx) => {
+        if (nextPlaylists.length === 0) return -1
+
+        if (targetIndex >= nextPlaylists.length) {
+          return nextPlaylists.length - 1
+        }
+
+        return targetIndex
+      })
+
+      return nextPlaylists
+    })
+
+    setModal(false)
+    setEditPlaylist(null)
+  }
   return (
     <div className="main-bg">
       <div className="playlist-zone">
@@ -86,6 +107,7 @@ export default function Home() {
       {modal && (
         <PlaylistModal
           playlist={editPlaylist}
+          onDelete={deletePlaylist}
           onClose={() => {
             setModal(false)
             setEditPlaylist(null)

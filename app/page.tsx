@@ -5,27 +5,34 @@ import './page.css'
 import type {Playlist, Song} from './types/playlist'
 
 export default function Home() {
-  // --- 상태 관리 ---
+  // --- 실제 재생 관련 상태 ---
   const [play, setPlay] = useState(false)
-  const [modal, setModal] = useState(false)
+  const [currentSong, setCurrentSong] = useState<Song | null>(null)
+  const [playingPlaylistName, setPlayingPlaylistName] = useState<string>('')
+  const [playTrigger, setPlayTrigger] = useState<number>(0)
+
+  // --- 플레이리스트 목록 및 UI 상태 ---
   const [playlists, setPlaylists] = useState<Playlist[]>([])
   const [activeIndex, setActiveIndex] = useState<number>(-1)
-  const [currentSong, setCurrentSong] = useState<Song | null>(null)
+  const [modal, setModal] = useState(false)
 
-  // 모달 내부용 임시 상태
   const [tempTitle, setTempTitle] = useState('')
   const [youtubeUrl, setYoutubeUrl] = useState('')
   const [isEditingTitle, setIsEditingTitle] = useState(false)
 
   const iframeRef = useRef<HTMLIFrameElement>(null)
 
-  // 슬라이드 인덱스 계산
   const center = activeIndex >= 0 ? playlists[activeIndex] : null
   const left = activeIndex > 0 ? playlists[activeIndex - 1] : null
   const rightAlbum =
     activeIndex < playlists.length - 1 ? playlists[activeIndex + 1] : null
 
-  // --- 유튜브 유틸리티 ---
+  useEffect(() => {
+    if (modal && center) {
+      setTempTitle(center.title)
+    }
+  }, [modal, center?.id])
+
   const extractVideoId = (url: string) => {
     if (url.includes('watch?v=')) return url.split('watch?v=')[1].split('&')[0]
     if (url.includes('youtu.be/'))
@@ -44,7 +51,21 @@ export default function Home() {
     sendYoutubeCommand(play ? 'playVideo' : 'pauseVideo')
   }, [play])
 
-  // --- 플레이리스트 로직 ---
+  const handlePlaySong = (song: Song, playlistTitle: string) => {
+    setCurrentSong(song)
+    setPlay(true)
+    setPlayingPlaylistName(playlistTitle)
+    setPlayTrigger(Date.now())
+  }
+
+  const handlePlayPlaylist = (playlist: Playlist) => {
+    if (playlist.songs.length > 0) {
+      handlePlaySong(playlist.songs[0], playlist.title)
+    } else {
+      alert('재생할 곡이 없습니다.')
+    }
+  }
+
   const addPlaylist = () => {
     const newPlaylist: Playlist = {
       id: Date.now().toString(),
@@ -53,30 +74,41 @@ export default function Home() {
     }
     const updatedPlaylists = [...playlists, newPlaylist]
     setPlaylists(updatedPlaylists)
-    setActiveIndex(updatedPlaylists.length - 1) // 새로 만든 앨범으로 포커스
+    setActiveIndex(updatedPlaylists.length - 1)
     setModal(true)
   }
 
   const deletePlaylist = (id: string) => {
     if (!confirm('플레이리스트를 삭제하시겠습니까?')) return
     const next = playlists.filter((p) => p.id !== id)
+    if (center && center.id === id && center.title === playingPlaylistName) {
+      setCurrentSong(null)
+      setPlay(false)
+      setPlayingPlaylistName('')
+    }
     setPlaylists(next)
     setActiveIndex(next.length > 0 ? 0 : -1)
-    setCurrentSong(null)
-    setPlay(false)
     setModal(false)
+  }
+
+  const handleTitleUpdate = () => {
+    if (!center) return
+    const newTitle = tempTitle.trim() || '제목 없음'
+    setPlaylists((prev) =>
+      prev.map((p) => (p.id === center.id ? {...p, title: newTitle} : p))
+    )
+    if (playingPlaylistName === center.title) setPlayingPlaylistName(newTitle)
+    setIsEditingTitle(false)
   }
 
   const updateCurrentPlaylist = (updated: Playlist) => {
     setPlaylists(playlists.map((p) => (p.id === updated.id ? updated : p)))
   }
 
-  // --- 곡 관련 로직 ---
   const addSong = async () => {
     if (!youtubeUrl.trim() || !center) return
     const videoId = extractVideoId(youtubeUrl)
     if (!videoId) return alert('유효한 링크가 아닙니다.')
-
     try {
       const res = await fetch(
         `https://noembed.com/embed?url=https://www.youtube.com/watch?v=${videoId}`
@@ -88,15 +120,7 @@ export default function Home() {
         thumbnail: `https://img.youtube.com/vi/${videoId}/hqdefault.jpg`,
         youtubeUrl,
       }
-
-      const updated = {...center, songs: [...center.songs, newSong]}
-      updateCurrentPlaylist(updated)
-
-      // 첫 곡이면 자동 재생
-      if (updated.songs.length === 1) {
-        setCurrentSong(newSong)
-        setPlay(true)
-      }
+      updateCurrentPlaylist({...center, songs: [...center.songs, newSong]})
       setYoutubeUrl('')
     } catch (e) {
       alert('곡 정보를 가져오지 못했습니다.')
@@ -114,12 +138,12 @@ export default function Home() {
 
   return (
     <div className="main-bg">
-      {/* 유튜브 플레이어: currentSong이 있을 때만 렌더링하여 src="" 에러 방지 */}
       <div
         className={`youtube-container ${modal ? 'on-modal' : 'hidden-player'}`}
       >
         {currentSong && (
           <iframe
+            key={playTrigger}
             ref={iframeRef}
             src={`https://www.youtube.com/embed/${extractVideoId(currentSong.youtubeUrl)}?enablejsapi=1&autoplay=1&controls=0`}
             allow="autoplay"
@@ -128,45 +152,53 @@ export default function Home() {
         )}
       </div>
 
-      {/* 메인 화면 레이아웃 */}
       <div className="playlist-zone">
         {center && <div className="playlist-album-title">{center.title}</div>}
 
-        {/* 왼쪽 앨범 */}
         {left && (
           <div
             className="playlist-album left"
             onClick={() => setActiveIndex(activeIndex - 1)}
           >
             {left.songs[0]?.thumbnail ? (
-              <img src={left.songs[0].thumbnail} alt="left" />
+              <img src={left.songs[0].thumbnail} alt="" />
             ) : (
               <div className="no-thumbnail">곡 없음</div>
             )}
           </div>
         )}
 
-        {/* 중앙 앨범 */}
+        {/* 중앙 앨범 커버 */}
         {center && (
           <div className="playlist-album center" onClick={() => setModal(true)}>
             <div className="playlist-album-cover">
               {center.songs[0]?.thumbnail ? (
-                <img src={center.songs[0].thumbnail} alt="center" />
+                <img src={center.songs[0].thumbnail} alt="" />
               ) : (
-                <div className="no-thumbnail">곡을 추가해 주세요</div>
+                <div className="no-thumbnail">곡 없음</div>
               )}
+
+              {/* 앨범 커버용 재생 버튼: stopPropagation으로 모달 열림 방지 */}
+              <button
+                className="album-play-overlay-btn"
+                onClick={(e) => {
+                  e.stopPropagation() // 모달이 열리지 않도록 막음
+                  handlePlayPlaylist(center)
+                }}
+              >
+                <div className="play-icon-inner" />
+              </button>
             </div>
           </div>
         )}
 
-        {/* 오른쪽 앨범 혹은 추가 버튼 */}
         {rightAlbum ? (
           <div
             className="playlist-album right"
             onClick={() => setActiveIndex(activeIndex + 1)}
           >
             {rightAlbum.songs[0]?.thumbnail ? (
-              <img src={rightAlbum.songs[0].thumbnail} alt="right" />
+              <img src={rightAlbum.songs[0].thumbnail} alt="" />
             ) : (
               <div className="no-thumbnail">곡 없음</div>
             )}
@@ -181,7 +213,6 @@ export default function Home() {
         )}
       </div>
 
-      {/* 통합 모달창 */}
       {modal && center && (
         <div className="modal-bg" onClick={() => setModal(false)}>
           <div className="modal-inner" onClick={(e) => e.stopPropagation()}>
@@ -191,14 +222,24 @@ export default function Home() {
             >
               삭제
             </button>
-
             <div className="modal-inner-left">
+              <div
+                style={{
+                  position: 'absolute',
+                  top: '20px',
+                  left: '20px',
+                  color: '#fff',
+                  fontSize: '0.8rem',
+                  zIndex: 10,
+                }}
+              >
+                {playingPlaylistName ? `${playingPlaylistName} 재생 중...` : ''}
+              </div>
               <div className="video-placeholder" />
               <div className="modal-video-info">
                 <p className="modal-video-title">{currentSong?.title || ''}</p>
               </div>
             </div>
-
             <div className="modal-inner-right">
               <div className="modal-inner-title">
                 <div className="title-edit-zone">
@@ -208,25 +249,15 @@ export default function Home() {
                       className="title-inline-input"
                       value={tempTitle}
                       onChange={(e) => setTempTitle(e.target.value)}
-                      onBlur={() => {
-                        updateCurrentPlaylist({
-                          ...center,
-                          title: tempTitle || '제목 없음',
-                        })
-                        setIsEditingTitle(false)
-                      }}
+                      onBlur={handleTitleUpdate}
                       onKeyDown={(e) =>
-                        e.key === 'Enter' &&
-                        (e.currentTarget as HTMLInputElement).blur()
+                        e.key === 'Enter' && handleTitleUpdate()
                       }
                     />
                   ) : (
                     <p
                       className="modal-title-display"
-                      onClick={() => {
-                        setTempTitle(center.title)
-                        setIsEditingTitle(true)
-                      }}
+                      onClick={() => setIsEditingTitle(true)}
                     >
                       {center.title} ✎
                     </p>
@@ -242,7 +273,6 @@ export default function Home() {
                   <button onClick={addSong}>+</button>
                 </div>
               </div>
-
               <div className="modal-inner-list">
                 {center.songs.length === 0 && (
                   <div className="no-songs-msg">곡을 추가해주세요.</div>
@@ -251,10 +281,7 @@ export default function Home() {
                   <div
                     key={song.id}
                     className="song-item"
-                    onClick={() => {
-                      setCurrentSong(song)
-                      setPlay(true)
-                    }}
+                    onClick={() => handlePlaySong(song, center.title)}
                   >
                     <div className="song-info">
                       <img
@@ -289,9 +316,9 @@ export default function Home() {
         </div>
       )}
 
-      {/* 하단 재생 바 */}
       <div className="music-var">
         <div className="music-var-title">
+          {playingPlaylistName ? `[${playingPlaylistName}] ` : ''}
           {currentSong?.title || '플레이 리스트를 선택해주세요'}
         </div>
         <div className="control-btns">

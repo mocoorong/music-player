@@ -98,7 +98,7 @@ body {
   bottom: 0;
   background: rgba(60, 60, 60, 0.3);
   width: 100%;
-  height: 13%;
+  height: 10%;
 }
 
 .music-var-title {
@@ -110,30 +110,10 @@ body {
   justify-content: center;
 }
 
-.progress-container {
-  position: absolute;
-  left: 50%;
-  top: 40%;
-  transform: translateX(-50%);
-  width: 60%;
-  height: 8px;
-  background: rgba(255, 255, 255, 0.2);
-  border-radius: 999px;
-  cursor: pointer;
-}
-
-.progress-bar {
-  height: 100%;
-  width: 0%;
-  background: #fff;
-  border-radius: 999px;
-  transition: width 0.1s linear;
-}
-
 .control-btns {
   position: absolute;
   left: 50%;
-  bottom: 5%;
+  bottom: 8%;
   width: 50%;
   transform: translateX(-50%);
   display: flex;

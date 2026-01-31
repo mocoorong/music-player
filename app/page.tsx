@@ -133,9 +133,6 @@ export default function Home() {
           <div className="music-var-title">플레이 리스트를 선택해주세요</div>
         )}
 
-        <div className="progress-container">
-          <div className="progress-bar"></div>
-        </div>
         <audio id="audio" src="/music/sample.mp3"></audio>
         <div className="control-btns">
           <button>

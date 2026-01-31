@@ -5,17 +5,13 @@ import './page.css'
 import type {Playlist, Song} from './types/playlist'
 
 export default function Home() {
-  // --- 실제 재생 관련 상태 ---
   const [play, setPlay] = useState(false)
   const [currentSong, setCurrentSong] = useState<Song | null>(null)
   const [playingPlaylistName, setPlayingPlaylistName] = useState<string>('')
   const [playTrigger, setPlayTrigger] = useState<number>(0)
-
-  // --- 플레이리스트 목록 및 UI 상태 ---
   const [playlists, setPlaylists] = useState<Playlist[]>([])
   const [activeIndex, setActiveIndex] = useState<number>(-1)
   const [modal, setModal] = useState(false)
-
   const [tempTitle, setTempTitle] = useState('')
   const [youtubeUrl, setYoutubeUrl] = useState('')
   const [isEditingTitle, setIsEditingTitle] = useState(false)
@@ -28,9 +24,7 @@ export default function Home() {
     activeIndex < playlists.length - 1 ? playlists[activeIndex + 1] : null
 
   useEffect(() => {
-    if (modal && center) {
-      setTempTitle(center.title)
-    }
+    if (modal && center) setTempTitle(center.title)
   }, [modal, center?.id])
 
   const extractVideoId = (url: string) => {
@@ -59,11 +53,32 @@ export default function Home() {
   }
 
   const handlePlayPlaylist = (playlist: Playlist) => {
-    if (playlist.songs.length > 0) {
+    if (playlist.songs.length > 0)
       handlePlaySong(playlist.songs[0], playlist.title)
-    } else {
-      alert('재생할 곡이 없습니다.')
-    }
+    else alert('재생할 곡이 없습니다.')
+  }
+
+  const handleNextSong = () => {
+    if (!currentSong || !playingPlaylistName) return
+    const currentPlaylist = playlists.find(
+      (p) => p.title === playingPlaylistName
+    )
+    if (!currentPlaylist) return
+    const idx = currentPlaylist.songs.findIndex((s) => s.id === currentSong.id)
+    const nextIdx = (idx + 1) % currentPlaylist.songs.length
+    handlePlaySong(currentPlaylist.songs[nextIdx], currentPlaylist.title)
+  }
+
+  const handlePrevSong = () => {
+    if (!currentSong || !playingPlaylistName) return
+    const currentPlaylist = playlists.find(
+      (p) => p.title === playingPlaylistName
+    )
+    if (!currentPlaylist) return
+    const idx = currentPlaylist.songs.findIndex((s) => s.id === currentSong.id)
+    const prevIdx =
+      (idx - 1 + currentPlaylist.songs.length) % currentPlaylist.songs.length
+    handlePlaySong(currentPlaylist.songs[prevIdx], currentPlaylist.title)
   }
 
   const addPlaylist = () => {
@@ -72,16 +87,16 @@ export default function Home() {
       title: '새 플레이리스트',
       songs: [],
     }
-    const updatedPlaylists = [...playlists, newPlaylist]
-    setPlaylists(updatedPlaylists)
-    setActiveIndex(updatedPlaylists.length - 1)
+    const updated = [...playlists, newPlaylist]
+    setPlaylists(updated)
+    setActiveIndex(updated.length - 1)
     setModal(true)
   }
 
   const deletePlaylist = (id: string) => {
-    if (!confirm('플레이리스트를 삭제하시겠습니까?')) return
+    if (!confirm('삭제하시겠습니까?')) return
     const next = playlists.filter((p) => p.id !== id)
-    if (center && center.id === id && center.title === playingPlaylistName) {
+    if (center?.id === id && center?.title === playingPlaylistName) {
       setCurrentSong(null)
       setPlay(false)
       setPlayingPlaylistName('')
@@ -123,7 +138,7 @@ export default function Home() {
       updateCurrentPlaylist({...center, songs: [...center.songs, newSong]})
       setYoutubeUrl('')
     } catch (e) {
-      alert('곡 정보를 가져오지 못했습니다.')
+      alert('정보를 가져오지 못했습니다.')
     }
   }
 
@@ -145,7 +160,7 @@ export default function Home() {
           <iframe
             key={playTrigger}
             ref={iframeRef}
-            src={`https://www.youtube.com/embed/${extractVideoId(currentSong.youtubeUrl)}?enablejsapi=1&autoplay=1&controls=0`}
+            src={`https://www.youtube.com/embed/${extractVideoId(currentSong.youtubeUrl)}?enablejsapi=1&autoplay=1&controls=1&rel=0&modestbranding=1`}
             allow="autoplay"
             frameBorder="0"
           />
@@ -154,7 +169,6 @@ export default function Home() {
 
       <div className="playlist-zone">
         {center && <div className="playlist-album-title">{center.title}</div>}
-
         {left && (
           <div
             className="playlist-album left"
@@ -167,8 +181,6 @@ export default function Home() {
             )}
           </div>
         )}
-
-        {/* 중앙 앨범 커버 */}
         {center && (
           <div className="playlist-album center" onClick={() => setModal(true)}>
             <div className="playlist-album-cover">
@@ -177,12 +189,10 @@ export default function Home() {
               ) : (
                 <div className="no-thumbnail">곡 없음</div>
               )}
-
-              {/* 앨범 커버용 재생 버튼: stopPropagation으로 모달 열림 방지 */}
               <button
                 className="album-play-overlay-btn"
                 onClick={(e) => {
-                  e.stopPropagation() // 모달이 열리지 않도록 막음
+                  e.stopPropagation()
                   handlePlayPlaylist(center)
                 }}
               >
@@ -191,7 +201,6 @@ export default function Home() {
             </div>
           </div>
         )}
-
         {rightAlbum ? (
           <div
             className="playlist-album right"
@@ -322,7 +331,7 @@ export default function Home() {
           {currentSong?.title || '플레이 리스트를 선택해주세요'}
         </div>
         <div className="control-btns">
-          <button>
+          <button onClick={handlePrevSong}>
             <img src="/img/main-prevBtn.png" alt="prev" />
           </button>
           <button onClick={() => setPlay(!play)}>
@@ -331,7 +340,7 @@ export default function Home() {
               alt="play"
             />
           </button>
-          <button>
+          <button onClick={handleNextSong}>
             <img src="/img/main-nextBtn.png" alt="next" />
           </button>
         </div>

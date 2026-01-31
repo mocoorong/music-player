@@ -136,8 +136,27 @@ export default function PlaylistModal({
         )}
         <div className="modal-inner-left">
           <div className="modal-inner-youtube">
-            {localSongs.length > 0 && (
-              <img src={localSongs[0].thumbnail} alt="preview" />
+            {localSongs.length > 0 ? (
+              <>
+                <div className="video-wrapper">
+                  <iframe
+                    width="100%"
+                    height="100%"
+                    src={`https://www.youtube.com/embed/${extractVideoId(localSongs[0].youtubeUrl)}`}
+                    title="YouTube video player"
+                    frameBorder="0"
+                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                    allowFullScreen
+                  ></iframe>
+                  <div className="modal-video-info">
+                    <p className="modal-video-title">{localSongs[0].title}</p>
+                  </div>
+                </div>
+              </>
+            ) : (
+              <div className="no-video-placeholder">
+                곡을 추가하면 영상이 나옵니다
+              </div>
             )}
           </div>
         </div>

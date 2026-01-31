@@ -1,3 +1,5 @@
+'use client'
+
 import './PlaylistModal.css'
 import type {Playlist, Song} from '../types/playlist'
 import {useState, useEffect} from 'react'
@@ -8,6 +10,7 @@ type PlaylistModalProps = {
   onCreate: (playlist: Playlist) => void
   onUpdate: (playlist: Playlist) => void
   onDelete: (id: string) => void
+  onSelectSong: (song: Song) => void
 }
 
 export default function PlaylistModal({
@@ -16,11 +19,12 @@ export default function PlaylistModal({
   onCreate,
   onUpdate,
   onDelete,
+  onSelectSong,
 }: PlaylistModalProps) {
   const [title, setTitle] = useState('')
   const [youtubeUrl, setYoutubeUrl] = useState('')
   const [isEditingTitle, setIsEditingTitle] = useState(false)
-  const [localSongs, setLocalSongs] = useState<any[]>(playlist?.songs ?? [])
+  const [localSongs, setLocalSongs] = useState<Song[]>(playlist?.songs ?? [])
   const editMode = Boolean(playlist)
 
   const extractVideoId = (url: string) => {
@@ -53,7 +57,7 @@ export default function PlaylistModal({
 
     const songTitle = await fetchYoutubeTitle(youtubeUrl)
     const thumbnail = `https://img.youtube.com/vi/${videoId}/hqdefault.jpg`
-    const newSong = {
+    const newSong: Song = {
       id: Date.now().toString(),
       title: songTitle,
       thumbnail,
@@ -62,6 +66,12 @@ export default function PlaylistModal({
 
     const updatedSongs = [...localSongs, newSong]
     setLocalSongs(updatedSongs)
+
+    // [핵심] 첫 번째 곡이 추가되면 자동으로 재생되도록 부모에게 전달
+    if (updatedSongs.length === 1) {
+      onSelectSong(newSong)
+    }
+
     if (editMode && playlist) onUpdate({...playlist, songs: updatedSongs})
     setYoutubeUrl('')
   }
@@ -71,9 +81,7 @@ export default function PlaylistModal({
       onClose()
       return
     }
-
     const finalTitle = title.trim() || '제목 없음'
-
     if (editMode && playlist) {
       onUpdate({...playlist, title: finalTitle, songs: localSongs})
     } else {
@@ -135,30 +143,18 @@ export default function PlaylistModal({
           </button>
         )}
         <div className="modal-inner-left">
-          <div className="modal-inner-youtube">
-            {localSongs.length > 0 ? (
-              <>
-                <div className="video-wrapper">
-                  <iframe
-                    width="100%"
-                    height="100%"
-                    src={`https://www.youtube.com/embed/${extractVideoId(localSongs[0].youtubeUrl)}`}
-                    title="YouTube video player"
-                    frameBorder="0"
-                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                    allowFullScreen
-                  ></iframe>
-                  <div className="modal-video-info">
-                    <p className="modal-video-title">{localSongs[0].title}</p>
-                  </div>
-                </div>
-              </>
-            ) : (
-              <div className="no-video-placeholder">
-                곡을 추가하면 영상이 나옵니다
+          {localSongs.length > 0 ? (
+            <div className="video-wrapper">
+              <div className="video-placeholder"></div>
+              <div className="modal-video-info">
+                <p className="modal-video-title">{localSongs[0].title}</p>
               </div>
-            )}
-          </div>
+            </div>
+          ) : (
+            <div className="no-video-placeholder">
+              곡을 추가하면 영상이 나옵니다
+            </div>
+          )}
         </div>
 
         <div className="modal-inner-right">
@@ -188,9 +184,6 @@ export default function PlaylistModal({
               )}
             </div>
             <div className="options">
-              <select>
-                <option>노래 추가</option>
-              </select>
               <input
                 placeholder="유튜브 링크"
                 value={youtubeUrl}
@@ -203,12 +196,19 @@ export default function PlaylistModal({
 
           <div className="modal-inner-list">
             {localSongs.map((song, index) => (
-              <div key={song.id} className="song-item">
+              <div
+                key={song.id}
+                className="song-item"
+                onClick={() => onSelectSong(song)}
+              >
                 <div className="song-info">
                   <img src={song.thumbnail} alt="" className="song-thumbnail" />
                   <span className="song-title-text">{song.title}</span>
                 </div>
-                <div className="song-controls">
+                <div
+                  className="song-controls"
+                  onClick={(e) => e.stopPropagation()}
+                >
                   <button onClick={() => moveUp(index)}>▲</button>
                   <button onClick={() => moveDown(index)}>▼</button>
                   <button

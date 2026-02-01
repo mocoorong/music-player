@@ -350,12 +350,38 @@ export default function Home() {
                       <button onClick={() => moveSong(i, 'up')}>▲</button>
                       <button onClick={() => moveSong(i, 'down')}>▼</button>
                       <button
-                        onClick={() =>
+                        onClick={(e) => {
+                          e.stopPropagation()
+
+                          // 1. 삭제 후의 새로운 곡 목록 생성
+                          const updatedSongs = center.songs.filter(
+                            (s) => s.id !== song.id
+                          )
+
+                          // 2. 만약 삭제하려는 곡(song.id)이 현재 재생 중인 곡(currentSong.id)이라면?
+                          if (currentSong?.id === song.id) {
+                            if (updatedSongs.length > 0) {
+                              // 다음 곡이 있다면: 현재 인덱스의 곡을 가져오면 자동으로 "다음 곡"이 됩니다.
+                              const currentIndex = center.songs.findIndex(
+                                (s) => s.id === song.id
+                              )
+                              const nextSong =
+                                updatedSongs[currentIndex] || updatedSongs[0] // 마지막 곡이면 첫 곡으로
+                              handlePlaySong(nextSong, center.title)
+                            } else {
+                              // 리스트에 곡이 더 이상 없다면: 재생 중지 및 정보 초기화
+                              setPlay(false)
+                              setCurrentSong(null)
+                              setPlayingPlaylistName('')
+                            }
+                          }
+
+                          // 3. 실제 플레이리스트 상태 업데이트
                           updateCurrentPlaylist({
                             ...center,
-                            songs: center.songs.filter((s) => s.id !== song.id),
+                            songs: updatedSongs,
                           })
-                        }
+                        }}
                       >
                         X
                       </button>

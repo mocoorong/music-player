@@ -2,99 +2,78 @@
 
 import {useState, useRef, useEffect} from 'react'
 import './page.css'
-import type {Playlist, Song} from './types/playlist'
+
+export type Song = {
+  id: string
+  title: string
+  youtubeUrl: string
+  thumbnail: string
+}
+export type Playlist = {
+  id: string
+  title: string
+  songs: Song[]
+}
 
 export default function Home() {
   const [play, setPlay] = useState(false)
   const [currentSong, setCurrentSong] = useState<Song | null>(null)
   const [playingPlaylistName, setPlayingPlaylistName] = useState<string>('')
-  const [playTrigger, setPlayTrigger] = useState<number>(0)
+  const [playingPlaylistId, setPlayingPlaylistId] = useState<string>('')
   const [playlists, setPlaylists] = useState<Playlist[]>([])
   const [activeIndex, setActiveIndex] = useState<number>(-1)
   const [modal, setModal] = useState(false)
   const [tempTitle, setTempTitle] = useState('')
   const [youtubeUrl, setYoutubeUrl] = useState('')
   const [isEditingTitle, setIsEditingTitle] = useState(false)
+  const [isMounted, setIsMounted] = useState(false)
+  const [origin, setOrigin] = useState('')
 
   const iframeRef = useRef<HTMLIFrameElement>(null)
 
-  const center = activeIndex >= 0 ? playlists[activeIndex] : null
-  const left = activeIndex > 0 ? playlists[activeIndex - 1] : null
-  const rightAlbum =
-    activeIndex < playlists.length - 1 ? playlists[activeIndex + 1] : null
+  // 리스너 내부용 최신 상태 참조 Ref
+  const playlistsRef = useRef(playlists)
+  const playingPlaylistIdRef = useRef(playingPlaylistId)
 
-  // 로컬 스토리지 데이터 불러오기
+  useEffect(() => {
+    playlistsRef.current = playlists
+    playingPlaylistIdRef.current = playingPlaylistId
+  }, [playlists, playingPlaylistId])
+
+  // 1. 초기 로드 및 하이드레이션 방지
   useEffect(() => {
     const savedPlaylists = localStorage.getItem('my-playlists')
     if (savedPlaylists) {
-      const parsed = JSON.parse(savedPlaylists)
-      setPlaylists(parsed)
-      if (parsed.length > 0) setActiveIndex(0)
+      try {
+        const parsed = JSON.parse(savedPlaylists)
+        setPlaylists(parsed)
+        if (parsed.length > 0) setActiveIndex(0)
+      } catch (e) {
+        console.error(e)
+      }
     }
+    setOrigin(window.location.origin)
+    setIsMounted(true)
   }, [])
 
+  // 2. 데이터 저장
   useEffect(() => {
-    if (playlists.length > 0) {
+    if (isMounted) {
       localStorage.setItem('my-playlists', JSON.stringify(playlists))
     }
-  }, [playlists])
-
-  // --- 자동 재생 보완 로직 ---
-  useEffect(() => {
-    let checkInterval: NodeJS.Timeout
-
-    const handleMessage = (event: MessageEvent) => {
-      if (event.origin !== 'https://www.youtube.com') return
-      try {
-        const data = JSON.parse(event.data)
-
-        // 1. 일반적인 종료 신호(0) 감지
-        if (data.event === 'infoDelivery' && data.info?.playerState === 0) {
-          handleNextSong()
-        }
-
-        // 2. 시간 업데이트 감지 (마지막에 멈추는 현상 방지)
-        if (
-          data.event === 'infoDelivery' &&
-          data.info?.currentTime &&
-          data.info?.duration
-        ) {
-          const {currentTime, duration} = data.info
-          // 영상 종료 0.5초~1초 전에 강제로 다음 곡 트리거
-          if (duration > 0 && currentTime >= duration - 1) {
-            handleNextSong()
-          }
-        }
-      } catch (e) {}
-    }
-
-    // 3. YouTube에 지속적으로 상태를 요청 (데이터를 보내달라고 찌르는 역할)
-    if (play && currentSong) {
-      checkInterval = setInterval(() => {
-        iframeRef.current?.contentWindow?.postMessage(
-          JSON.stringify({event: 'listening', id: 1, args: []}),
-          '*'
-        )
-      }, 1000)
-    }
-
-    window.addEventListener('message', handleMessage)
-    return () => {
-      window.removeEventListener('message', handleMessage)
-      clearInterval(checkInterval)
-    }
-  }, [play, currentSong, playlists, playingPlaylistName])
+  }, [playlists, isMounted])
 
   const extractVideoId = (url: string) => {
-    if (url.includes('watch?v=')) return url.split('watch?v=')[1].split('&')[0]
-    if (url.includes('youtu.be/'))
-      return url.split('youtu.be/')[1].split('?')[0]
-    return ''
+    const regExp =
+      /^.*((youtu.be\/)|(v\/)|(\/u\/\w\/)|(embed\/)|(watch\?))\??v?=?([^#&?]*).*/
+    const match = url.match(regExp)
+    return match && match[7].length === 11 ? match[7] : ''
   }
 
-  const sendYoutubeCommand = (command: 'playVideo' | 'pauseVideo') => {
-    iframeRef.current?.contentWindow?.postMessage(
-      JSON.stringify({event: 'command', func: command, args: []}),
+  const sendYoutubeCommand = (func: string, args: any[] = []) => {
+    if (!iframeRef.current?.contentWindow) return
+    iframeRef.current.contentWindow.postMessage(
+      JSON.stringify({event: 'command', func, args}),
       '*'
     )
   }
@@ -103,50 +82,83 @@ export default function Home() {
     sendYoutubeCommand(play ? 'playVideo' : 'pauseVideo')
   }, [play])
 
-  const handlePlaySong = (song: Song, playlistTitle: string) => {
+  // 3. 자동 곡 변경 감지 (가장 중요한 부분)
+  useEffect(() => {
+    const handleMessage = (event: MessageEvent) => {
+      if (!event.origin.includes('youtube')) return
+
+      let data
+      try {
+        data =
+          typeof event.data === 'string' ? JSON.parse(event.data) : event.data
+      } catch {
+        return
+      }
+
+      if (data.event !== 'infoDelivery') return
+      console.log('YT DATA:', data)
+      const index =
+        typeof data.info?.playlistIndex === 'number'
+          ? data.info.playlistIndex
+          : typeof data.info?.currentIndex === 'number'
+            ? data.info.currentIndex
+            : null
+
+      if (index === null) return
+
+      const list = playlistsRef.current.find(
+        (p) => p.id === playingPlaylistIdRef.current
+      )
+
+      if (!list) return
+
+      const nextSong = list.songs[index]
+      if (!nextSong) return
+
+      setCurrentSong({
+        ...nextSong,
+      })
+    }
+    window.addEventListener('message', handleMessage)
+
+    const interval = setInterval(() => {
+      sendYoutubeCommand('getPlaylistIndex')
+    }, 700)
+
+    return () => {
+      window.removeEventListener('message', handleMessage)
+      clearInterval(interval)
+    }
+  }, [])
+
+  const handlePlaySong = (song: Song, playlist: Playlist) => {
+    const videoIds = playlist.songs
+      .map((s) => extractVideoId(s.youtubeUrl))
+      .filter((id) => id !== '')
+    const targetIndex = playlist.songs.findIndex((s) => s.id === song.id)
+
+    setPlayingPlaylistId(playlist.id)
+    setPlayingPlaylistName(playlist.title)
     setCurrentSong(song)
     setPlay(true)
-    setPlayingPlaylistName(playlistTitle)
-    setPlayTrigger(Date.now())
+
+    sendYoutubeCommand('loadPlaylist', [videoIds, targetIndex, 0])
   }
 
   const handlePlayPlaylist = (playlist: Playlist) => {
-    if (playlist.songs.length > 0)
-      handlePlaySong(playlist.songs[0], playlist.title)
+    if (playlist.songs.length > 0) handlePlaySong(playlist.songs[0], playlist)
     else alert('재생할 곡이 없습니다.')
   }
 
-  const handleNextSong = () => {
-    if (!currentSong || !playingPlaylistName) return
-    const currentPlaylist = playlists.find(
-      (p) => p.title === playingPlaylistName
-    )
-    if (!currentPlaylist || currentPlaylist.songs.length === 0) return
-    const idx = currentPlaylist.songs.findIndex((s) => s.id === currentSong.id)
-    const nextIdx = (idx + 1) % currentPlaylist.songs.length
-    handlePlaySong(currentPlaylist.songs[nextIdx], currentPlaylist.title)
-  }
+  const handleNextSong = () => sendYoutubeCommand('nextVideo')
+  const handlePrevSong = () => sendYoutubeCommand('previousVideo')
 
-  const handlePrevSong = () => {
-    if (!currentSong || !playingPlaylistName) return
-    const currentPlaylist = playlists.find(
-      (p) => p.title === playingPlaylistName
-    )
-    if (!currentPlaylist || currentPlaylist.songs.length === 0) return
-    const idx = currentPlaylist.songs.findIndex((s) => s.id === currentSong.id)
-    const prevIdx =
-      (idx - 1 + currentPlaylist.songs.length) % currentPlaylist.songs.length
-    handlePlaySong(currentPlaylist.songs[prevIdx], currentPlaylist.title)
-  }
-
-  // ... (addPlaylist, deletePlaylist, handleTitleUpdate, updateCurrentPlaylist, addSong, moveSong 로직은 이전과 동일)
   const addPlaylist = () => {
     const count = playlists.length
     const newTitle =
       count === 0 ? '새 플레이리스트' : `새 플레이리스트 (${count})`
-
     const newPlaylist: Playlist = {
-      id: Date.now().toString(),
+      id: crypto.randomUUID(),
       title: newTitle,
       songs: [],
     }
@@ -160,10 +172,11 @@ export default function Home() {
   const deletePlaylist = (id: string) => {
     if (!confirm('삭제하시겠습니까?')) return
     const next = playlists.filter((p) => p.id !== id)
-    if (center?.id === id && center?.title === playingPlaylistName) {
+    if (playingPlaylistId === id) {
       setCurrentSong(null)
       setPlay(false)
       setPlayingPlaylistName('')
+      setPlayingPlaylistId('')
     }
     setPlaylists(next)
     setActiveIndex(next.length > 0 ? 0 : -1)
@@ -171,21 +184,19 @@ export default function Home() {
   }
 
   const handleTitleUpdate = () => {
-    if (!center) return
+    const currentActive = playlists[activeIndex]
+    if (!currentActive) return
     const newTitle = tempTitle.trim() || '제목 없음'
     setPlaylists((prev) =>
-      prev.map((p) => (p.id === center.id ? {...p, title: newTitle} : p))
+      prev.map((p) => (p.id === currentActive.id ? {...p, title: newTitle} : p))
     )
-    if (playingPlaylistName === center.title) setPlayingPlaylistName(newTitle)
+    if (playingPlaylistId === currentActive.id) setPlayingPlaylistName(newTitle)
     setIsEditingTitle(false)
   }
 
-  const updateCurrentPlaylist = (updated: Playlist) => {
-    setPlaylists(playlists.map((p) => (p.id === updated.id ? updated : p)))
-  }
-
   const addSong = async () => {
-    if (!youtubeUrl.trim() || !center) return
+    const currentActive = playlists[activeIndex]
+    if (!youtubeUrl.trim() || !currentActive) return
     const videoId = extractVideoId(youtubeUrl)
     if (!videoId) return alert('유효한 링크가 아닙니다.')
     try {
@@ -194,12 +205,16 @@ export default function Home() {
       )
       const data = await res.json()
       const newSong: Song = {
-        id: Date.now().toString(),
+        id: crypto.randomUUID(),
         title: data.title || '제목 없음',
         thumbnail: `https://img.youtube.com/vi/${videoId}/hqdefault.jpg`,
         youtubeUrl,
       }
-      updateCurrentPlaylist({...center, songs: [...center.songs, newSong]})
+      setPlaylists((prev) =>
+        prev.map((p) =>
+          p.id === currentActive.id ? {...p, songs: [...p.songs, newSong]} : p
+        )
+      )
       setYoutubeUrl('')
     } catch (e) {
       alert('정보를 가져오지 못했습니다.')
@@ -207,26 +222,57 @@ export default function Home() {
   }
 
   const moveSong = (index: number, direction: 'up' | 'down') => {
-    if (!center) return
-    const newSongs = [...center.songs]
+    const currentActive = playlists[activeIndex]
+    if (!currentActive) return
+    const newSongs = [...currentActive.songs]
     const target = direction === 'up' ? index - 1 : index + 1
     if (target < 0 || target >= newSongs.length) return
     ;[newSongs[index], newSongs[target]] = [newSongs[target], newSongs[index]]
-    updateCurrentPlaylist({...center, songs: newSongs})
+    setPlaylists((prev) =>
+      prev.map((p) => (p.id === currentActive.id ? {...p, songs: newSongs} : p))
+    )
+    if (currentActive.id === playingPlaylistIdRef.current && currentSong) {
+      const videoIds = newSongs
+        .map((s) => extractVideoId(s.youtubeUrl))
+        .filter(Boolean)
+
+      // 현재 재생곡 위치 다시 계산
+      const newIndex = newSongs.findIndex((s) => s.id === currentSong.id)
+
+      sendYoutubeCommand('loadPlaylist', [
+        videoIds,
+        newIndex === -1 ? 0 : newIndex,
+        0,
+      ])
+    }
   }
+
+  // ★ 렌더링 직전에 변수들을 정의하여 ReferenceError 방지 ★
+  const center = activeIndex >= 0 ? playlists[activeIndex] : null
+  const left = activeIndex > 0 ? playlists[activeIndex - 1] : null
+  const rightAlbum =
+    activeIndex < playlists.length - 1 ? playlists[activeIndex + 1] : null
 
   return (
     <div className="main-bg">
       <div
         className={`youtube-container ${modal ? 'on-modal' : 'hidden-player'}`}
       >
-        {currentSong && (
+        {origin && (
           <iframe
-            key={playTrigger}
             ref={iframeRef}
-            src={`https://www.youtube.com/embed/${extractVideoId(currentSong.youtubeUrl)}?enablejsapi=1&autoplay=1&controls=1&rel=0&modestbranding=1&origin=${typeof window !== 'undefined' ? window.location.origin : ''}`}
-            allow="autoplay"
+            src={`https://www.youtube.com/embed?enablejsapi=1&origin=${origin}`}
+            allow="autoplay; encrypted-media"
             frameBorder="0"
+            onLoad={() => {
+              if (!iframeRef.current?.contentWindow) return
+
+              // ★ 이게 핵심
+              iframeRef.current.contentWindow.postMessage(
+                JSON.stringify({event: 'listening'}),
+                '*'
+              )
+            }}
           />
         )}
       </div>
@@ -306,11 +352,15 @@ export default function Home() {
                   zIndex: 10,
                 }}
               >
-                {playingPlaylistName ? `${playingPlaylistName} 재생 중...` : ''}
+                {playingPlaylistName && playingPlaylistId === center.id
+                  ? `${playingPlaylistName} 재생 중...`
+                  : ''}
               </div>
               <div className="video-placeholder" />
               <div className="modal-video-info">
-                <p className="modal-video-title">{currentSong?.title || ''}</p>
+                <p className="modal-video-title">
+                  {currentSong?.title || '재생 중인 곡이 없습니다'}
+                </p>
               </div>
             </div>
             <div className="modal-inner-right">
@@ -354,7 +404,7 @@ export default function Home() {
                   <div
                     key={song.id}
                     className="song-item"
-                    onClick={() => handlePlaySong(song, center.title)}
+                    onClick={() => handlePlaySong(song, center)}
                   >
                     <div className="song-info">
                       <img
@@ -373,35 +423,16 @@ export default function Home() {
                       <button
                         onClick={(e) => {
                           e.stopPropagation()
-
-                          // 1. 삭제 후의 새로운 곡 목록 생성
                           const updatedSongs = center.songs.filter(
                             (s) => s.id !== song.id
                           )
-
-                          // 2. 만약 삭제하려는 곡(song.id)이 현재 재생 중인 곡(currentSong.id)이라면?
-                          if (currentSong?.id === song.id) {
-                            if (updatedSongs.length > 0) {
-                              // 다음 곡이 있다면: 현재 인덱스의 곡을 가져오면 자동으로 "다음 곡"이 됩니다.
-                              const currentIndex = center.songs.findIndex(
-                                (s) => s.id === song.id
-                              )
-                              const nextSong =
-                                updatedSongs[currentIndex] || updatedSongs[0] // 마지막 곡이면 첫 곡으로
-                              handlePlaySong(nextSong, center.title)
-                            } else {
-                              // 리스트에 곡이 더 이상 없다면: 재생 중지 및 정보 초기화
-                              setPlay(false)
-                              setCurrentSong(null)
-                              setPlayingPlaylistName('')
-                            }
-                          }
-
-                          // 3. 실제 플레이리스트 상태 업데이트
-                          updateCurrentPlaylist({
-                            ...center,
-                            songs: updatedSongs,
-                          })
+                          setPlaylists(
+                            playlists.map((p) =>
+                              p.id === center.id
+                                ? {...center, songs: updatedSongs}
+                                : p
+                            )
+                          )
                         }}
                       >
                         X

@@ -23,6 +23,22 @@ export default function Home() {
   const rightAlbum =
     activeIndex < playlists.length - 1 ? playlists[activeIndex + 1] : null
 
+  // 로컬 스토리지 데이터 불러오기
+  useEffect(() => {
+    const savedPlaylists = localStorage.getItem('my-playlists')
+    if (savedPlaylists) {
+      const parsed = JSON.parse(savedPlaylists)
+      setPlaylists(parsed)
+      if (parsed.length > 0) setActiveIndex(0)
+    }
+  }, [])
+
+  useEffect(() => {
+    if (playlists.length > 0) {
+      localStorage.setItem('my-playlists', JSON.stringify(playlists))
+    }
+  }, [playlists])
+
   // --- 자동 재생 보완 로직 ---
   useEffect(() => {
     let checkInterval: NodeJS.Timeout
@@ -125,15 +141,20 @@ export default function Home() {
 
   // ... (addPlaylist, deletePlaylist, handleTitleUpdate, updateCurrentPlaylist, addSong, moveSong 로직은 이전과 동일)
   const addPlaylist = () => {
+    const count = playlists.length
+    const newTitle =
+      count === 0 ? '새 플레이리스트' : `새 플레이리스트 (${count})`
+
     const newPlaylist: Playlist = {
       id: Date.now().toString(),
-      title: '새 플레이리스트',
+      title: newTitle,
       songs: [],
     }
     const updated = [...playlists, newPlaylist]
     setPlaylists(updated)
     setActiveIndex(updated.length - 1)
     setModal(true)
+    setTempTitle(newTitle)
   }
 
   const deletePlaylist = (id: string) => {

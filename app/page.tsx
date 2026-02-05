@@ -143,6 +143,7 @@ export default function Home() {
     setPlay(true)
 
     sendYoutubeCommand('loadPlaylist', [videoIds, targetIndex, 0])
+    sendYoutubeCommand('setLoop', [true])
   }
 
   const handlePlayPlaylist = (playlist: Playlist) => {
@@ -245,6 +246,30 @@ export default function Home() {
         0,
       ])
     }
+  }
+
+  const scrollToCurrentSong = () => {
+    if (!currentSong || !playingPlaylistId) return
+
+    // 1. 재생 중인 플레이리스트의 인덱스 찾기
+    const playlistIndex = playlists.findIndex((p) => p.id === playingPlaylistId)
+    if (playlistIndex === -1) return
+
+    // 2. 해당 플레이리스트를 화면 중앙(activeIndex)에 배치하고 모달 열기
+    setActiveIndex(playlistIndex)
+    setModal(true)
+
+    // 3. 모달이 열린 후 해당 곡 위치로 스크롤 (약간의 지연시간 필요)
+    setTimeout(() => {
+      const songElement = document.getElementById(`song-${currentSong.id}`)
+      if (songElement) {
+        songElement.scrollIntoView({behavior: 'smooth', block: 'center'})
+
+        // 강조 효과 (반짝이는 효과 등을 주고 싶을 때)
+        songElement.classList.add('highlight-song')
+        setTimeout(() => songElement.classList.remove('highlight-song'), 2000)
+      }
+    }, 100)
   }
 
   // ★ 렌더링 직전에 변수들을 정의하여 ReferenceError 방지 ★
@@ -421,7 +446,8 @@ export default function Home() {
                 {center.songs.map((song, i) => (
                   <div
                     key={song.id}
-                    className="song-item"
+                    id={`song-${song.id}`}
+                    className={`song-item ${currentSong?.id === song.id ? 'active-playing' : ''}`}
                     onClick={() => handlePlaySong(song, center)}
                   >
                     <div className="song-info">
@@ -526,6 +552,7 @@ export default function Home() {
             src={currentSong.thumbnail}
             alt="mini-thumb"
             className="mini-thumbnail"
+            onClick={scrollToCurrentSong}
           />
         ) : (
           <div className="mini-thumbnail-placeholder" /> // 곡이 없을 때 빈 칸

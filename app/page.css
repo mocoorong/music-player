@@ -184,6 +184,7 @@ body {
   object-fit: cover;
   box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
   background-color: #333;
+  cursor: pointer;
 }
 .music-var-title {
   position: absolute;
@@ -368,12 +369,19 @@ body {
   border-bottom: 1px solid #eee;
 }
 
+.song-item.active-playing {
+  background-color: black;
+}
+.song-item.active-playing .song-title-text {
+  color: white;
+}
 .song-info {
   display: flex;
   align-items: center;
   gap: 5%;
   width: 70%;
 }
+
 .no-songs-msg {
   width: 100%;
   height: 100%;

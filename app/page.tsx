@@ -27,13 +27,14 @@ export default function Home() {
   const [youtubeUrl, setYoutubeUrl] = useState('')
   const [isEditingTitle, setIsEditingTitle] = useState(false)
   const [isMounted, setIsMounted] = useState(false)
-  const [origin, setOrigin] = useState('')
 
-  const iframeRef = useRef<HTMLIFrameElement>(null)
+  // 유튜브 플레이어 객체를 담을 Ref
+  const playerRef = useRef<any>(null)
+
+  // 최신 상태 참조를 위한 Ref
   const playlistsRef = useRef(playlists)
   const playingPlaylistIdRef = useRef(playingPlaylistId)
   const currentSongRef = useRef(currentSong)
-  const currentTimeRef = useRef(0)
 
   useEffect(() => {
     playlistsRef.current = playlists
@@ -41,6 +42,7 @@ export default function Home() {
     currentSongRef.current = currentSong
   }, [playlists, playingPlaylistId, currentSong])
 
+  // 1. YouTube API 스크립트 로드 및 플레이어 초기화
   useEffect(() => {
     const savedPlaylists = localStorage.getItem('my-playlists')
     if (savedPlaylists) {
@@ -52,8 +54,37 @@ export default function Home() {
         console.error(e)
       }
     }
-    setOrigin(window.location.origin)
     setIsMounted(true)
+
+    // API 스크립트 추가
+    if (!(window as any).YT) {
+      const tag = document.createElement('script')
+      tag.src = 'https://www.youtube.com/iframe_api'
+      const firstScriptTag = document.getElementsByTagName('script')[0]
+      firstScriptTag.parentNode?.insertBefore(tag, firstScriptTag)
+    }
+
+    // API 준비 완료 콜백 정의
+    ;(window as any).onYouTubeIframeAPIReady = () => {
+      playerRef.current = new (window as any).YT.Player('yt-player', {
+        height: '100%',
+        width: '100%',
+        videoId: '',
+        playerVars: {
+          autoplay: 1,
+          rel: 0,
+          controls: 1,
+        },
+        events: {
+          onStateChange: (event: any) => {
+            // YT.PlayerState.ENDED 가 0입니다.
+            if (event.data === 0) {
+              handleNextSong()
+            }
+          },
+        },
+      })
+    }
   }, [])
 
   useEffect(() => {
@@ -69,107 +100,53 @@ export default function Home() {
     return match && match[7].length === 11 ? match[7] : ''
   }
 
-  const sendYoutubeCommand = (func: string, args: any[] = []) => {
-    if (!iframeRef.current?.contentWindow) return
-    iframeRef.current.contentWindow.postMessage(
-      JSON.stringify({event: 'command', func, args}),
-      '*'
-    )
-  }
+  // ★ 정석 구조: API 객체를 이용한 재생 제어
+  const playSpecificSong = (song: Song) => {
+    const videoId = extractVideoId(song.youtubeUrl)
+    if (!videoId || !playerRef.current) return
 
-  useEffect(() => {
-    sendYoutubeCommand(play ? 'playVideo' : 'pauseVideo')
-  }, [play])
-
-  useEffect(() => {
-    const handleMessage = (event: MessageEvent) => {
-      if (!event.origin.includes('youtube')) return
-      let data
-      try {
-        data =
-          typeof event.data === 'string' ? JSON.parse(event.data) : event.data
-      } catch {
-        return
-      }
-      if (data.event !== 'infoDelivery') return
-
-      // 현재 재생 시간 추적 (업데이트 시 복구용)
-      if (data.info?.currentTime) {
-        currentTimeRef.current = data.info.currentTime
-      }
-
-      const index =
-        typeof data.info?.playlistIndex === 'number'
-          ? data.info.playlistIndex
-          : typeof data.info?.currentIndex === 'number'
-            ? data.info.currentIndex
-            : null
-
-      if (index === null) return
-
-      const list = playlistsRef.current.find(
-        (p) => p.id === playingPlaylistIdRef.current
-      )
-      if (!list) return
-
-      const nextSong = list.songs[index]
-      if (nextSong && nextSong.id !== currentSongRef.current?.id) {
-        setCurrentSong({...nextSong})
-      }
-    }
-
-    window.addEventListener('message', handleMessage)
-    const interval = setInterval(() => {
-      sendYoutubeCommand('getPlaylistIndex')
-      sendYoutubeCommand('getCurrentTime') // 시간 동기화 추가
-    }, 700)
-
-    return () => {
-      window.removeEventListener('message', handleMessage)
-      clearInterval(interval)
-    }
-  }, [])
-
-  // 핵심: 리스트가 변할 때 현재 곡 재생을 유지시키는 함수
-  const updateQueueSeamlessly = (updatedSongs: Song[]) => {
-    if (playingPlaylistIdRef.current !== playlistsRef.current[activeIndex]?.id)
-      return
-
-    const videoIds = updatedSongs
-      .map((s) => extractVideoId(s.youtubeUrl))
-      .filter(Boolean)
-    const currentIndex = updatedSongs.findIndex(
-      (s) => s.id === currentSongRef.current?.id
-    )
-
-    // loadPlaylist를 쓰되, 현재 시간을 인자로 넘겨서 끊김을 최소화함
-    // 세 번째 인자 0은 시작 시간(초)임. 여기에 저장된 현재 시간을 넣음
-    const resumeTime = currentTimeRef.current
-
-    sendYoutubeCommand('loadPlaylist', [
-      videoIds,
-      currentIndex === -1 ? 0 : currentIndex,
-      resumeTime,
-    ])
-    sendYoutubeCommand('setLoop', [true])
-
-    // 만약 일시정지 중이었다면 다시 일시정지 명령 (loadPlaylist는 자동재생됨)
-    if (!play) {
-      setTimeout(() => sendYoutubeCommand('pauseVideo'), 100)
-    }
-  }
-
-  const handlePlaySong = (song: Song, playlist: Playlist) => {
-    const videoIds = playlist.songs
-      .map((s) => extractVideoId(s.youtubeUrl))
-      .filter(Boolean)
-    const targetIndex = playlist.songs.findIndex((s) => s.id === song.id)
-    setPlayingPlaylistId(playlist.id)
-    setPlayingPlaylistName(playlist.title)
     setCurrentSong(song)
     setPlay(true)
-    sendYoutubeCommand('loadPlaylist', [videoIds, targetIndex, 0])
-    sendYoutubeCommand('setLoop', [true])
+    // postMessage 대신 직접 메서드 호출
+    playerRef.current.loadVideoById(videoId)
+  }
+
+  const handleNextSong = () => {
+    const list = playlistsRef.current.find(
+      (p) => p.id === playingPlaylistIdRef.current
+    )
+    if (!list || list.songs.length === 0) return
+    const currentIndex = list.songs.findIndex(
+      (s) => s.id === currentSongRef.current?.id
+    )
+    const nextIndex = (currentIndex + 1) % list.songs.length
+    playSpecificSong(list.songs[nextIndex])
+  }
+
+  const handlePrevSong = () => {
+    const list = playlistsRef.current.find(
+      (p) => p.id === playingPlaylistIdRef.current
+    )
+    if (!list || list.songs.length === 0) return
+    const currentIndex = list.songs.findIndex(
+      (s) => s.id === currentSongRef.current?.id
+    )
+    const prevIndex = (currentIndex - 1 + list.songs.length) % list.songs.length
+    playSpecificSong(list.songs[prevIndex])
+  }
+
+  // 재생/일시정지 버튼 동기화
+  useEffect(() => {
+    if (playerRef.current && playerRef.current.getPlayerState) {
+      if (play) playerRef.current.playVideo()
+      else playerRef.current.pauseVideo()
+    }
+  }, [play])
+
+  const handlePlaySong = (song: Song, playlist: Playlist) => {
+    setPlayingPlaylistId(playlist.id)
+    setPlayingPlaylistName(playlist.title)
+    playSpecificSong(song)
   }
 
   const handlePlayPlaylist = (playlist: Playlist) => {
@@ -177,9 +154,7 @@ export default function Home() {
     else alert('재생할 곡이 없습니다.')
   }
 
-  const handleNextSong = () => sendYoutubeCommand('nextVideo')
-  const handlePrevSong = () => sendYoutubeCommand('previousVideo')
-
+  // --- 이하 UI 및 데이터 로직은 동일 ---
   const addPlaylist = () => {
     const count = playlists.length
     const newTitle =
@@ -204,7 +179,7 @@ export default function Home() {
       setPlay(false)
       setPlayingPlaylistName('')
       setPlayingPlaylistId('')
-      sendYoutubeCommand('stopVideo')
+      if (playerRef.current) playerRef.current.stopVideo()
     }
     setPlaylists(next)
     setActiveIndex(next.length > 0 ? 0 : -1)
@@ -232,25 +207,19 @@ export default function Home() {
         `https://noembed.com/embed?url=https://www.youtube.com/watch?v=${videoId}`
       )
       const data = await res.json()
-      const newSong: Song = {
+      const newSong = {
         id: crypto.randomUUID(),
         title: data.title || '제목 없음',
         thumbnail: `https://img.youtube.com/vi/${videoId}/hqdefault.jpg`,
         youtubeUrl,
       }
-      const updatedSongs = [...currentActive.songs, newSong]
       setPlaylists((prev) =>
         prev.map((p) =>
-          p.id === currentActive.id ? {...p, songs: updatedSongs} : p
+          p.id === currentActive.id ? {...p, songs: [...p.songs, newSong]} : p
         )
       )
-
-      // 재생 중인 리스트라면 현재 시간 유지하며 업데이트
-      if (currentActive.id === playingPlaylistIdRef.current) {
-        updateQueueSeamlessly(updatedSongs)
-      }
       setYoutubeUrl('')
-    } catch (e) {
+    } catch {
       alert('정보를 가져오지 못했습니다.')
     }
   }
@@ -265,10 +234,6 @@ export default function Home() {
     setPlaylists((prev) =>
       prev.map((p) => (p.id === currentActive.id ? {...p, songs: newSongs} : p))
     )
-
-    if (currentActive.id === playingPlaylistIdRef.current) {
-      updateQueueSeamlessly(newSongs)
-    }
   }
 
   const deleteSong = (songId: string, index: number) => {
@@ -281,25 +246,12 @@ export default function Home() {
         p.id === currentActive.id ? {...p, songs: updatedSongs} : p
       )
     )
-
-    if (playingPlaylistId === currentActive.id) {
-      if (updatedSongs.length > 0) {
-        if (isDeletingCurrent) {
-          const nextIdx =
-            index >= updatedSongs.length ? updatedSongs.length - 1 : index
-          setCurrentSong(updatedSongs[nextIdx])
-          const videoIds = updatedSongs
-            .map((s) => extractVideoId(s.youtubeUrl))
-            .filter(Boolean)
-          sendYoutubeCommand('loadPlaylist', [videoIds, nextIdx, 0])
-          sendYoutubeCommand('setLoop', [true])
-        } else {
-          updateQueueSeamlessly(updatedSongs)
-        }
-      } else {
+    if (playingPlaylistId === currentActive.id && isDeletingCurrent) {
+      if (updatedSongs.length > 0) handleNextSong()
+      else {
         setPlay(false)
         setCurrentSong(null)
-        sendYoutubeCommand('stopVideo')
+        if (playerRef.current) playerRef.current.stopVideo()
       }
     }
   }
@@ -311,11 +263,11 @@ export default function Home() {
     setActiveIndex(playlistIndex)
     setModal(true)
     setTimeout(() => {
-      const songElement = document.getElementById(`song-${currentSong.id}`)
-      if (songElement) {
-        songElement.scrollIntoView({behavior: 'smooth', block: 'center'})
-        songElement.classList.add('highlight-song')
-        setTimeout(() => songElement.classList.remove('highlight-song'), 2000)
+      const el = document.getElementById(`song-${currentSong.id}`)
+      if (el) {
+        el.scrollIntoView({behavior: 'smooth', block: 'center'})
+        el.classList.add('highlight-song')
+        setTimeout(() => el.classList.remove('highlight-song'), 2000)
       }
     }, 100)
   }
@@ -335,25 +287,14 @@ export default function Home() {
             : 'none',
         }}
       />
+
+      {/* 🟢 정석 구조: API가 이 div를 iframe으로 교체함 */}
       <div
         className={`youtube-container ${modal ? 'on-modal' : 'hidden-player'}`}
       >
-        {origin && (
-          <iframe
-            ref={iframeRef}
-            src={`https://www.youtube.com/embed?enablejsapi=1&origin=${origin}`}
-            allow="autoplay; encrypted-media"
-            frameBorder="0"
-            onLoad={() => {
-              if (!iframeRef.current?.contentWindow) return
-              iframeRef.current.contentWindow.postMessage(
-                JSON.stringify({event: 'listening'}),
-                '*'
-              )
-            }}
-          />
-        )}
+        <div id="yt-player"></div>
       </div>
+
       <div className="playlist-zone">
         {left && (
           <div
@@ -418,6 +359,7 @@ export default function Home() {
           </div>
         )}
       </div>
+
       {modal && center && (
         <div className="modal-bg" onClick={() => setModal(false)}>
           <div className="modal-inner" onClick={(e) => e.stopPropagation()}>
@@ -516,6 +458,7 @@ export default function Home() {
           </div>
         </div>
       )}
+
       <div className="music-var">
         <div className="music-var-title">
           {playingPlaylistName ? `[${playingPlaylistName}] ` : ''}

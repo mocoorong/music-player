@@ -32,11 +32,14 @@ export default function Home() {
   const iframeRef = useRef<HTMLIFrameElement>(null)
   const playlistsRef = useRef(playlists)
   const playingPlaylistIdRef = useRef(playingPlaylistId)
+  const currentSongRef = useRef(currentSong)
+  const currentTimeRef = useRef(0)
 
   useEffect(() => {
     playlistsRef.current = playlists
     playingPlaylistIdRef.current = playingPlaylistId
-  }, [playlists, playingPlaylistId])
+    currentSongRef.current = currentSong
+  }, [playlists, playingPlaylistId, currentSong])
 
   useEffect(() => {
     const savedPlaylists = localStorage.getItem('my-playlists')
@@ -89,31 +92,72 @@ export default function Home() {
         return
       }
       if (data.event !== 'infoDelivery') return
+
+      // 현재 재생 시간 추적 (업데이트 시 복구용)
+      if (data.info?.currentTime) {
+        currentTimeRef.current = data.info.currentTime
+      }
+
       const index =
         typeof data.info?.playlistIndex === 'number'
           ? data.info.playlistIndex
           : typeof data.info?.currentIndex === 'number'
             ? data.info.currentIndex
             : null
+
       if (index === null) return
+
       const list = playlistsRef.current.find(
         (p) => p.id === playingPlaylistIdRef.current
       )
       if (!list) return
+
       const nextSong = list.songs[index]
-      if (nextSong && nextSong.id !== currentSong?.id) {
+      if (nextSong && nextSong.id !== currentSongRef.current?.id) {
         setCurrentSong({...nextSong})
       }
     }
+
     window.addEventListener('message', handleMessage)
     const interval = setInterval(() => {
       sendYoutubeCommand('getPlaylistIndex')
+      sendYoutubeCommand('getCurrentTime') // 시간 동기화 추가
     }, 700)
+
     return () => {
       window.removeEventListener('message', handleMessage)
       clearInterval(interval)
     }
-  }, [currentSong])
+  }, [])
+
+  // 핵심: 리스트가 변할 때 현재 곡 재생을 유지시키는 함수
+  const updateQueueSeamlessly = (updatedSongs: Song[]) => {
+    if (playingPlaylistIdRef.current !== playlistsRef.current[activeIndex]?.id)
+      return
+
+    const videoIds = updatedSongs
+      .map((s) => extractVideoId(s.youtubeUrl))
+      .filter(Boolean)
+    const currentIndex = updatedSongs.findIndex(
+      (s) => s.id === currentSongRef.current?.id
+    )
+
+    // loadPlaylist를 쓰되, 현재 시간을 인자로 넘겨서 끊김을 최소화함
+    // 세 번째 인자 0은 시작 시간(초)임. 여기에 저장된 현재 시간을 넣음
+    const resumeTime = currentTimeRef.current
+
+    sendYoutubeCommand('loadPlaylist', [
+      videoIds,
+      currentIndex === -1 ? 0 : currentIndex,
+      resumeTime,
+    ])
+    sendYoutubeCommand('setLoop', [true])
+
+    // 만약 일시정지 중이었다면 다시 일시정지 명령 (loadPlaylist는 자동재생됨)
+    if (!play) {
+      setTimeout(() => sendYoutubeCommand('pauseVideo'), 100)
+    }
+  }
 
   const handlePlaySong = (song: Song, playlist: Playlist) => {
     const videoIds = playlist.songs
@@ -200,19 +244,10 @@ export default function Home() {
           p.id === currentActive.id ? {...p, songs: updatedSongs} : p
         )
       )
+
+      // 재생 중인 리스트라면 현재 시간 유지하며 업데이트
       if (currentActive.id === playingPlaylistIdRef.current) {
-        const videoIds = updatedSongs
-          .map((s) => extractVideoId(s.youtubeUrl))
-          .filter(Boolean)
-        const currentIndex = updatedSongs.findIndex(
-          (s) => s.id === currentSong?.id
-        )
-        sendYoutubeCommand('loadPlaylist', [
-          videoIds,
-          currentIndex === -1 ? 0 : currentIndex,
-          0,
-        ])
-        sendYoutubeCommand('setLoop', [true])
+        updateQueueSeamlessly(updatedSongs)
       }
       setYoutubeUrl('')
     } catch (e) {
@@ -230,17 +265,9 @@ export default function Home() {
     setPlaylists((prev) =>
       prev.map((p) => (p.id === currentActive.id ? {...p, songs: newSongs} : p))
     )
+
     if (currentActive.id === playingPlaylistIdRef.current) {
-      const videoIds = newSongs
-        .map((s) => extractVideoId(s.youtubeUrl))
-        .filter(Boolean)
-      const newIndex = newSongs.findIndex((s) => s.id === currentSong?.id)
-      sendYoutubeCommand('loadPlaylist', [
-        videoIds,
-        newIndex === -1 ? 0 : newIndex,
-        0,
-      ])
-      sendYoutubeCommand('setLoop', [true])
+      updateQueueSeamlessly(newSongs)
     }
   }
 
@@ -254,19 +281,21 @@ export default function Home() {
         p.id === currentActive.id ? {...p, songs: updatedSongs} : p
       )
     )
+
     if (playingPlaylistId === currentActive.id) {
       if (updatedSongs.length > 0) {
-        const videoIds = updatedSongs
-          .map((s) => extractVideoId(s.youtubeUrl))
-          .filter(Boolean)
-        let nextIdx = updatedSongs.findIndex((s) => s.id === currentSong?.id)
         if (isDeletingCurrent) {
-          nextIdx =
+          const nextIdx =
             index >= updatedSongs.length ? updatedSongs.length - 1 : index
           setCurrentSong(updatedSongs[nextIdx])
+          const videoIds = updatedSongs
+            .map((s) => extractVideoId(s.youtubeUrl))
+            .filter(Boolean)
+          sendYoutubeCommand('loadPlaylist', [videoIds, nextIdx, 0])
+          sendYoutubeCommand('setLoop', [true])
+        } else {
+          updateQueueSeamlessly(updatedSongs)
         }
-        sendYoutubeCommand('loadPlaylist', [videoIds, nextIdx, 0])
-        sendYoutubeCommand('setLoop', [true])
       } else {
         setPlay(false)
         setCurrentSong(null)

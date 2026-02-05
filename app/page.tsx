@@ -96,7 +96,7 @@ export default function Home() {
       }
 
       if (data.event !== 'infoDelivery') return
-      console.log('YT DATA:', data)
+
       const index =
         typeof data.info?.playlistIndex === 'number'
           ? data.info.playlistIndex
@@ -256,6 +256,14 @@ export default function Home() {
   return (
     <div className="main-bg">
       <div
+        className="bg-layer"
+        style={{
+          backgroundImage: currentSong
+            ? `url(${currentSong.thumbnail})`
+            : 'none',
+        }}
+      />
+      <div
         className={`youtube-container ${modal ? 'on-modal' : 'hidden-player'}`}
       >
         {origin && (
@@ -278,7 +286,6 @@ export default function Home() {
       </div>
 
       <div className="playlist-zone">
-        {center && <div className="playlist-album-title">{center.title}</div>}
         {left && (
           <div
             className="playlist-album left"
@@ -294,8 +301,19 @@ export default function Home() {
         {center && (
           <div className="playlist-album center" onClick={() => setModal(true)}>
             <div className="playlist-album-cover">
-              {center.songs[0]?.thumbnail ? (
-                <img src={center.songs[0].thumbnail} alt="" />
+              <div className="playlist-album-title">{center.title}</div>
+              {currentSong && playingPlaylistId === center.id ? (
+                <img
+                  src={currentSong.thumbnail}
+                  alt="playing-thumb"
+                  className="album-img playing"
+                />
+              ) : center.songs[0]?.thumbnail ? (
+                <img
+                  src={center.songs[0].thumbnail}
+                  alt="default-thumb"
+                  className="album-img"
+                />
               ) : (
                 <div className="no-thumbnail">곡 없음</div>
               )}
@@ -420,19 +438,71 @@ export default function Home() {
                     >
                       <button onClick={() => moveSong(i, 'up')}>▲</button>
                       <button onClick={() => moveSong(i, 'down')}>▼</button>
+                      {/* ... 생략 ... */}
                       <button
                         onClick={(e) => {
                           e.stopPropagation()
+
+                          // 1. 삭제할 곡이 현재 재생 중인 곡인지 확인
+                          const isDeletingCurrentSong =
+                            currentSong?.id === song.id
+
+                          // 2. 새로운 곡 목록 생성
                           const updatedSongs = center.songs.filter(
                             (s) => s.id !== song.id
                           )
-                          setPlaylists(
-                            playlists.map((p) =>
-                              p.id === center.id
-                                ? {...center, songs: updatedSongs}
-                                : p
-                            )
+
+                          // 3. 전체 플레이리스트 상태 업데이트
+                          const updatedPlaylists = playlists.map((p) =>
+                            p.id === center.id
+                              ? {...center, songs: updatedSongs}
+                              : p
                           )
+                          setPlaylists(updatedPlaylists)
+
+                          // 4. 만약 재생 중인 곡을 삭제했다면?
+                          if (isDeletingCurrentSong) {
+                            if (updatedSongs.length > 0) {
+                              const nextIndex =
+                                i >= updatedSongs.length
+                                  ? updatedSongs.length - 1
+                                  : i
+                              const nextSong = updatedSongs[nextIndex]
+
+                              // 새로운 리스트로 유튜브 플레이어 갱신
+                              const videoIds = updatedSongs
+                                .map((s) => extractVideoId(s.youtubeUrl))
+                                .filter(Boolean)
+
+                              setCurrentSong(nextSong)
+                              sendYoutubeCommand('loadPlaylist', [
+                                videoIds,
+                                nextIndex,
+                                0,
+                              ])
+                            } else {
+                              // 더 이상 부를 곡이 없으면 정지
+                              setPlay(false)
+                              setCurrentSong(null)
+                              sendYoutubeCommand('stopVideo')
+                            }
+                          } else if (playingPlaylistId === center.id) {
+                            // 재생 중인 곡은 아니지만 현재 재생 중인 '리스트'의 곡이 삭제된 경우
+                            // 플레이어의 큐(Queue)만 업데이트해줘야 순서가 꼬이지 않습니다.
+                            const videoIds = updatedSongs
+                              .map((s) => extractVideoId(s.youtubeUrl))
+                              .filter(Boolean)
+                            const currentIndex = updatedSongs.findIndex(
+                              (s) => s.id === currentSong?.id
+                            )
+
+                            // 현재 재생 위치를 유지하며 리스트만 갱신 (이미 렌더링된 currentSong은 유지됨)
+                            sendYoutubeCommand('loadPlaylist', [
+                              videoIds,
+                              currentIndex,
+                              0,
+                            ])
+                          }
                         }}
                       >
                         X
@@ -451,6 +521,15 @@ export default function Home() {
           {playingPlaylistName ? `[${playingPlaylistName}] ` : ''}
           {currentSong?.title || '플레이 리스트를 선택해주세요'}
         </div>
+        {currentSong ? (
+          <img
+            src={currentSong.thumbnail}
+            alt="mini-thumb"
+            className="mini-thumbnail"
+          />
+        ) : (
+          <div className="mini-thumbnail-placeholder" /> // 곡이 없을 때 빈 칸
+        )}
         <div className="control-btns">
           <button onClick={handlePrevSong}>
             <img src="/img/main-prevBtn.png" alt="prev" />

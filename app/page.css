@@ -11,17 +11,36 @@ body {
   height: 100vh;
   position: relative;
 }
+.bg-layer {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%); /* 정확히 화면 중앙 */
 
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+
+  background-size: cover;
+  background-position: center;
+
+  /* 은은한 효과: 블러와 투명도 */
+  filter: blur(50px);
+  opacity: 0.4;
+
+  transition: background-image 0.8s ease-in-out;
+  z-index: 0;
+}
 .playlist-album-title {
   position: absolute;
-  bottom: 8%;
+  bottom: 2%;
   left: 50%;
   transform: translateX(-50%);
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 20%;
-  height: 20%;
+  width: 100%;
+  color: white;
 }
 .music-playlist-add {
   position: absolute;
@@ -151,8 +170,21 @@ body {
   background: rgba(60, 60, 60, 0.3);
   width: 100%;
   height: 10%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
 }
 
+.mini-thumbnail {
+  position: absolute;
+  bottom: 5px;
+  right: 5px;
+  width: 8%;
+  aspect-ratio: 16/9;
+  object-fit: cover;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
+  background-color: #333;
+}
 .music-var-title {
   position: absolute;
   top: 10%;

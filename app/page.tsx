@@ -27,6 +27,9 @@ export default function Home() {
   const [youtubeUrl, setYoutubeUrl] = useState('')
   const [isEditingTitle, setIsEditingTitle] = useState(false)
   const [isMounted, setIsMounted] = useState(false)
+  const [searchQuery, setSearchQuery] = useState('')
+  const [searchResults, setSearchResults] = useState<any[]>([])
+  const [isSearching, setIsSearching] = useState(false)
 
   // 유튜브 플레이어 객체를 담을 Ref
   const playerRef = useRef<any>(null)
@@ -154,7 +157,6 @@ export default function Home() {
     else alert('재생할 곡이 없습니다.')
   }
 
-  // --- 이하 UI 및 데이터 로직은 동일 ---
   const addPlaylist = () => {
     const count = playlists.length
     const newTitle =
@@ -197,6 +199,27 @@ export default function Home() {
     setIsEditingTitle(false)
   }
 
+  const handleSearch = async () => {
+    if (!searchQuery.trim()) return
+
+    setIsSearching(true)
+    const API_KEY = process.env.NEXT_PUBLIC_YOUTUBE_API_KEY
+    // API 호출 URL (동영상 타입만, 최대 5개 결과)
+    const url = `https://www.googleapis.com/youtube/v3/search?part=snippet&maxResults=5&q=${encodeURIComponent(searchQuery)}&type=video&key=${API_KEY}`
+
+    try {
+      const res = await fetch(url)
+      const data = await res.json()
+      if (data.items) {
+        setSearchResults(data.items)
+      }
+    } catch (error) {
+      console.error('검색 중 오류 발생:', error)
+    } finally {
+      setIsSearching(false)
+    }
+  }
+
   const addSong = async () => {
     const currentActive = playlists[activeIndex]
     if (!youtubeUrl.trim() || !currentActive) return
@@ -222,6 +245,27 @@ export default function Home() {
     } catch {
       alert('정보를 가져오지 못했습니다.')
     }
+  }
+
+  const addSongFromSearch = (video: any) => {
+    const currentActive = playlists[activeIndex]
+    if (!currentActive) return
+
+    const newSong: Song = {
+      id: crypto.randomUUID(),
+      title: video.snippet.title,
+      thumbnail: video.snippet.thumbnails.high.url,
+      youtubeUrl: `https://www.youtube.com/watch?v=${video.id.videoId}`,
+    }
+
+    setPlaylists((prev) =>
+      prev.map((p) =>
+        p.id === currentActive.id ? {...p, songs: [...p.songs, newSong]} : p
+      )
+    )
+
+    setSearchResults([]) // 검색 결과 닫기
+    setSearchQuery('') // 입력창 비우기
   }
 
   const moveSong = (index: number, direction: 'up' | 'down') => {
@@ -413,15 +457,56 @@ export default function Home() {
                       {center.title} ✎
                     </p>
                   )}
-                </div>
-                <div className="options">
-                  <input
-                    placeholder="유튜브 링크"
-                    value={youtubeUrl}
-                    onChange={(e) => setYoutubeUrl(e.target.value)}
-                    onKeyDown={(e) => e.key === 'Enter' && addSong()}
-                  />
-                  <button onClick={addSong}>+</button>
+
+                  <div className="search-box-container">
+                    <input
+                      className="search-input"
+                      placeholder="곡 제목 또는 가수 검색"
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
+                      onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
+                    />
+                    <button className="search-btn" onClick={handleSearch}>
+                      {isSearching ? '...' : '검색'}
+                    </button>
+
+                    {searchResults.length > 0 && (
+                      <>
+                        <div
+                          className="dropdown-layer"
+                          onClick={() => setSearchResults([])}
+                        />
+                        <div className="search-results-dropdown">
+                          {searchResults.map((video) => (
+                            <div
+                              key={video.id.videoId}
+                              className="search-result-item"
+                              onClick={() => addSongFromSearch(video)}
+                            >
+                              <img
+                                src={video.snippet.thumbnails.default.url}
+                                alt=""
+                              />
+                              <div className="result-info">
+                                <p className="result-title">
+                                  {video.snippet.title}
+                                </p>
+                                <p className="result-channel">
+                                  {video.snippet.channelTitle}
+                                </p>
+                              </div>
+                            </div>
+                          ))}
+                          <button
+                            className="search-close-btn"
+                            onClick={() => setSearchResults([])}
+                          >
+                            닫기
+                          </button>
+                        </div>
+                      </>
+                    )}
+                  </div>
                 </div>
               </div>
               <div className="modal-inner-list">

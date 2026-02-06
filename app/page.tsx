@@ -30,6 +30,7 @@ export default function Home() {
   const [searchQuery, setSearchQuery] = useState('')
   const [searchResults, setSearchResults] = useState<any[]>([])
   const [isSearching, setIsSearching] = useState(false)
+  const [activeTab, setActiveTab] = useState<'search' | 'url'>('search')
 
   // 유튜브 플레이어 객체를 담을 Ref
   const playerRef = useRef<any>(null)
@@ -448,18 +449,50 @@ export default function Home() {
                   )}
 
                   <div className="search-box-container">
-                    <input
-                      className="search-input"
-                      placeholder="곡 제목 또는 가수 검색"
-                      value={searchQuery}
-                      onChange={(e) => setSearchQuery(e.target.value)}
-                      onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
-                    />
-                    <button className="search-btn" onClick={handleSearch}>
-                      {isSearching ? '...' : '검색'}
-                    </button>
+                    <select
+                      className="search-dropdown"
+                      value={activeTab}
+                      onChange={(e) => {
+                        setActiveTab(e.target.value as 'search' | 'url')
+                        setSearchResults([]) // 모드 바꿀 때 검색 결과 초기화
+                      }}
+                    >
+                      <option value="search">유튜브 검색으로 추가</option>
+                      <option value="url">동영상 URL로 추가</option>
+                    </select>
+                    <div className="input-row">
+                      {activeTab === 'search' ? (
+                        <>
+                          <input
+                            className="search-input"
+                            placeholder="곡 제목 검색"
+                            value={searchQuery}
+                            onChange={(e) => setSearchQuery(e.target.value)}
+                            onKeyDown={(e) =>
+                              e.key === 'Enter' && handleSearch()
+                            }
+                          />
+                          <button className="search-btn" onClick={handleSearch}>
+                            검색
+                          </button>
+                        </>
+                      ) : (
+                        <>
+                          <input
+                            className="search-input"
+                            placeholder="유튜브 링크 붙여넣기"
+                            value={youtubeUrl}
+                            onChange={(e) => setYoutubeUrl(e.target.value)}
+                            onKeyDown={(e) => e.key === 'Enter' && addSong()}
+                          />
+                          <button className="search-btn" onClick={addSong}>
+                            추가
+                          </button>
+                        </>
+                      )}
+                    </div>
 
-                    {searchResults.length > 0 && (
+                    {activeTab === 'search' && searchResults.length > 0 && (
                       <>
                         <div
                           className="dropdown-layer"

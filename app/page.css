@@ -492,10 +492,9 @@ body {
 
 .search-input {
   flex: 1;
-  padding: 8px 12px;
+  padding: 6px 10px;
   background: rgba(255, 255, 255, 0.1);
   border: 1px solid #444;
-  border-radius: 6px;
 }
 
 .search-results-dropdown {
@@ -548,4 +547,13 @@ body {
   right: 0;
   bottom: 0;
   z-index: 998;
+}
+
+.search-dropdown {
+  padding: 5px;
+}
+
+.input-row {
+  display: flex;
+  gap: 10px;
 }

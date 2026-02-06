@@ -103,7 +103,7 @@ export default function Home() {
     return match && match[7].length === 11 ? match[7] : ''
   }
 
-  // ★ 정석 구조: API 객체를 이용한 재생 제어
+  // API 객체를 이용한 재생 제어
   const playSpecificSong = (song: Song) => {
     const videoId = extractVideoId(song.youtubeUrl)
     if (!videoId || !playerRef.current) return
@@ -332,11 +332,15 @@ export default function Home() {
         }}
       />
 
-      {/* 🟢 정석 구조: API가 이 div를 iframe으로 교체함 */}
       <div
         className={`youtube-container ${modal ? 'on-modal' : 'hidden-player'}`}
       >
         <div id="yt-player"></div>
+        <div className="modal-video-info">
+          <p className="modal-video-title">
+            {currentSong?.title || '재생 중인 곡이 없습니다'}
+          </p>
+        </div>
       </div>
 
       <div className="playlist-zone">
@@ -414,25 +418,10 @@ export default function Home() {
               삭제
             </button>
             <div className="modal-inner-left">
-              <div
-                style={{
-                  position: 'absolute',
-                  top: '20px',
-                  left: '20px',
-                  color: '#fff',
-                  fontSize: '0.8rem',
-                  zIndex: 10,
-                }}
-              >
+              <div className="playlist-title">
                 {playingPlaylistName && playingPlaylistId === center.id
                   ? `${playingPlaylistName} 재생 중...`
                   : ''}
-              </div>
-              <div className="video-placeholder" />
-              <div className="modal-video-info">
-                <p className="modal-video-title">
-                  {currentSong?.title || '재생 중인 곡이 없습니다'}
-                </p>
               </div>
             </div>
             <div className="modal-inner-right">

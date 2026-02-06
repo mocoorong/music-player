@@ -420,9 +420,7 @@ export default function Home() {
             </button>
             <div className="modal-inner-left">
               <div className="playlist-title">
-                {playingPlaylistName && playingPlaylistId === center.id
-                  ? `${playingPlaylistName} 재생 중...`
-                  : ''}
+                {playingPlaylistName ? `${playingPlaylistName} 재생 중...` : ''}
               </div>
             </div>
             <div className="modal-inner-right">

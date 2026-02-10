@@ -31,6 +31,7 @@ export default function Home() {
   const [searchResults, setSearchResults] = useState<any[]>([])
   const [isSearching, setIsSearching] = useState(false)
   const [activeTab, setActiveTab] = useState<'search' | 'url'>('search')
+  const [isAutoPlay, setIsAutoPlay] = useState(false)
 
   // 유튜브 플레이어 객체를 담을 Ref
   const playerRef = useRef<any>(null)
@@ -39,6 +40,11 @@ export default function Home() {
   const playlistsRef = useRef(playlists)
   const playingPlaylistIdRef = useRef(playingPlaylistId)
   const currentSongRef = useRef(currentSong)
+  const isAutoPlayRef = useRef(isAutoPlay)
+
+  useEffect(() => {
+    isAutoPlayRef.current = isAutoPlay
+  }, [isAutoPlay])
 
   useEffect(() => {
     playlistsRef.current = playlists
@@ -115,30 +121,138 @@ export default function Home() {
     playerRef.current.loadVideoById(videoId)
   }
 
-  const handleNextSong = () => {
-    const list = playlistsRef.current.find(
+  const fetchRecommendedNextSong = async (
+    videoId: string,
+    currentTitle: string // 제목을 파라미터로 추가
+  ): Promise<Song | null> => {
+    const API_KEY = process.env.NEXT_PUBLIC_YOUTUBE_API_KEY
+    if (!API_KEY) return null
+
+    // '관련 영상' 대신 '현재 제목 + 관련' 키워드로 검색 (더 확실한 방법)
+    const query = encodeURIComponent(`${currentTitle} 관련 노래`)
+    const url = `https://www.googleapis.com/youtube/v3/search?part=snippet&maxResults=5&q=${query}&type=video&videoCategoryId=10&key=${API_KEY}`
+
+    try {
+      const res = await fetch(url)
+      const data = await res.json()
+
+      if (data.items && data.items.length > 0) {
+        // 현재 재생 중인 영상(videoId)을 제외한 첫 번째 결과 선택
+        const filtered = data.items.filter(
+          (item: any) => item.id.videoId !== videoId
+        )
+        const video = filtered.length > 0 ? filtered[0] : data.items[0]
+
+        return {
+          id: crypto.randomUUID(),
+          title: video.snippet.title,
+          thumbnail: video.snippet.thumbnails.high.url,
+          youtubeUrl: `https://www.youtube.com/watch?v=${video.id.videoId}`,
+        }
+      }
+    } catch (error) {
+      console.error('추천 곡 로드 실패:', error)
+    }
+    return null
+  }
+
+  const handleNextSong = async () => {
+    const currentPlaylists = playlistsRef.current
+    const list = currentPlaylists.find(
       (p) => p.id === playingPlaylistIdRef.current
     )
     if (!list || list.songs.length === 0) return
+
     const currentIndex = list.songs.findIndex(
       (s) => s.id === currentSongRef.current?.id
     )
-    const nextIndex = (currentIndex + 1) % list.songs.length
-    playSpecificSong(list.songs[nextIndex])
+
+    // 1. 현재 리스트 안에 다음 곡이 있는 경우
+    if (currentIndex !== -1 && currentIndex < list.songs.length - 1) {
+      playSpecificSong(list.songs[currentIndex + 1])
+    }
+    // 2. 현재 리스트의 마지막 곡인 경우
+    else {
+      // ★ 추가된 조건: '모든 리스트 재생' 모드가 켜져 있을 때만 다음 리스트로 이동
+      if (isAutoPlayRef.current) {
+        const currentListIndex = currentPlaylists.findIndex(
+          (p) => p.id === list.id
+        )
+
+        if (
+          currentListIndex !== -1 &&
+          currentListIndex < currentPlaylists.length - 1
+        ) {
+          const nextPlaylist = currentPlaylists[currentListIndex + 1]
+          if (nextPlaylist.songs.length > 0) {
+            handlePlaySong(nextPlaylist.songs[0], nextPlaylist)
+            setActiveIndex(currentListIndex + 1) // 앨범 포커스 이동
+          } else {
+            // 다음 리스트가 비어있으면 처음 곡으로
+            playSpecificSong(list.songs[0])
+          }
+        } else {
+          // 마지막 리스트의 마지막 곡이면 전체의 처음으로
+          const firstPlaylist = currentPlaylists[0]
+          if (firstPlaylist && firstPlaylist.songs.length > 0) {
+            handlePlaySong(firstPlaylist.songs[0], firstPlaylist)
+            setActiveIndex(0) // 앨범 포커스 이동
+          }
+        }
+      } else {
+        // ★ 모드가 꺼져있다면 현재 리스트의 첫 곡으로 돌아가기 (반복)
+        playSpecificSong(list.songs[0])
+      }
+    }
   }
 
   const handlePrevSong = () => {
-    const list = playlistsRef.current.find(
+    const currentPlaylists = playlistsRef.current
+    const list = currentPlaylists.find(
       (p) => p.id === playingPlaylistIdRef.current
     )
     if (!list || list.songs.length === 0) return
+
     const currentIndex = list.songs.findIndex(
       (s) => s.id === currentSongRef.current?.id
     )
-    const prevIndex = (currentIndex - 1 + list.songs.length) % list.songs.length
-    playSpecificSong(list.songs[prevIndex])
-  }
 
+    // 1. 리스트 내에 이전 곡이 있는 경우
+    if (currentIndex > 0) {
+      playSpecificSong(list.songs[currentIndex - 1])
+    }
+    // 2. 현재 리스트의 첫 곡인 경우
+    else {
+      // ★ '모든 리스트 재생' 모드가 켜져 있을 때만 이전 리스트로 이동
+      if (isAutoPlayRef.current) {
+        const currentListIndex = currentPlaylists.findIndex(
+          (p) => p.id === list.id
+        )
+
+        if (currentListIndex > 0) {
+          const prevPlaylist = currentPlaylists[currentListIndex - 1]
+          if (prevPlaylist.songs.length > 0) {
+            const lastSongOfPrevList =
+              prevPlaylist.songs[prevPlaylist.songs.length - 1]
+            handlePlaySong(lastSongOfPrevList, prevPlaylist)
+            setActiveIndex(currentListIndex - 1) // 앨범 포커스 이동
+          }
+        } else {
+          // 첫 리스트의 첫 곡이면 마지막 리스트의 마지막 곡으로
+          const lastPlaylist = currentPlaylists[currentPlaylists.length - 1]
+          if (lastPlaylist.songs.length > 0) {
+            const lastSong = lastPlaylist.songs[lastPlaylist.songs.length - 1]
+            handlePlaySong(lastSong, lastPlaylist)
+            setActiveIndex(currentPlaylists.length - 1) // 앨범 포커스 이동
+          }
+        }
+      } else {
+        // ★ 모드가 꺼져있다면 현재 리스트의 마지막 곡으로 이동
+        const lastIndex = list.songs.length - 1
+        playSpecificSong(list.songs[lastIndex])
+      }
+    }
+  }
   // 재생/일시정지 버튼 동기화
   useEffect(() => {
     if (playerRef.current && playerRef.current.getPlayerState) {
@@ -420,6 +534,15 @@ export default function Home() {
             </button>
             <div className="modal-inner-left">
               <div className="playlist-title">
+                <button
+                  className={`autoplay-toggle ${isAutoPlay ? 'on' : 'off'}`}
+                  onClick={() => setIsAutoPlay(!isAutoPlay)}
+                >
+                  <span className="icon">🔁</span>
+                  <span className="text">
+                    {isAutoPlay ? '모든 리스트 재생' : '현재 리스트 반복'}
+                  </span>
+                </button>
                 {playingPlaylistName ? `${playingPlaylistName} 재생 중...` : ''}
               </div>
             </div>

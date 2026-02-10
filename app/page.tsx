@@ -656,31 +656,37 @@ export default function Home() {
                 {center.songs.length === 0 && (
                   <div className="no-songs-msg">곡을 추가해주세요.</div>
                 )}
-                {center.songs.map((song, i) => (
-                  <div
-                    key={song.id}
-                    id={`song-${song.id}`}
-                    className={`song-item ${currentSong?.id === song.id ? 'active-playing' : ''}`}
-                    onClick={() => handlePlaySong(song, center)}
-                  >
-                    <div className="song-info">
-                      <img
-                        src={song.thumbnail}
-                        className="song-thumbnail"
-                        alt=""
-                      />
-                      <span className="song-title-text">{song.title}</span>
-                    </div>
+                {center.songs
+                  .filter((song) =>
+                    song.title.toLowerCase().includes(searchQuery.toLowerCase())
+                  )
+                  .map((song, i) => (
                     <div
-                      className="song-controls"
-                      onClick={(e) => e.stopPropagation()}
+                      key={song.id}
+                      id={`song-${song.id}`}
+                      className={`song-item ${currentSong?.id === song.id ? 'active-playing' : ''}`}
+                      onClick={() => handlePlaySong(song, center)}
                     >
-                      <button onClick={() => moveSong(i, 'up')}>▲</button>
-                      <button onClick={() => moveSong(i, 'down')}>▼</button>
-                      <button onClick={() => deleteSong(song.id, i)}>X</button>
+                      <div className="song-info">
+                        <img
+                          src={song.thumbnail}
+                          className="song-thumbnail"
+                          alt=""
+                        />
+                        <span className="song-title-text">{song.title}</span>
+                      </div>
+                      <div
+                        className="song-controls"
+                        onClick={(e) => e.stopPropagation()}
+                      >
+                        <button onClick={() => moveSong(i, 'up')}>▲</button>
+                        <button onClick={() => moveSong(i, 'down')}>▼</button>
+                        <button onClick={() => deleteSong(song.id, i)}>
+                          X
+                        </button>
+                      </div>
                     </div>
-                  </div>
-                ))}
+                  ))}
               </div>
             </div>
           </div>

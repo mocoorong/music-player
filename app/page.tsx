@@ -549,33 +549,31 @@ export default function Home() {
         )}
         {center && (
           <div className="playlist-album center" onClick={() => setModal(true)}>
-            <div className="playlist-album-cover">
-              <div className="playlist-album-title">{center.title}</div>
-              {currentSong && playingPlaylistId === center.id ? (
-                <img
-                  src={currentSong.thumbnail}
-                  alt=""
-                  className="album-img playing"
-                />
-              ) : center.songs[0]?.thumbnail ? (
-                <img
-                  src={center.songs[0].thumbnail}
-                  alt=""
-                  className="album-img"
-                />
-              ) : (
-                <div className="no-thumbnail">곡 없음</div>
-              )}
-              <button
-                className="album-play-overlay-btn"
-                onClick={(e) => {
-                  e.stopPropagation()
-                  handlePlayPlaylist(center)
-                }}
-              >
-                <div className="play-icon-inner" />
-              </button>
-            </div>
+            <div className="playlist-album-title">{center.title}</div>
+            {currentSong && playingPlaylistId === center.id ? (
+              <img
+                src={currentSong.thumbnail}
+                alt=""
+                className="album-img playing"
+              />
+            ) : center.songs[0]?.thumbnail ? (
+              <img
+                src={center.songs[0].thumbnail}
+                alt=""
+                className="album-img"
+              />
+            ) : (
+              <div className="no-thumbnail">곡 없음</div>
+            )}
+            <button
+              className="album-play-overlay-btn"
+              onClick={(e) => {
+                e.stopPropagation()
+                handlePlayPlaylist(center)
+              }}
+            >
+              <div className="play-icon-inner" />
+            </button>
           </div>
         )}
         {rightAlbum ? (

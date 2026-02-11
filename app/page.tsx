@@ -197,7 +197,6 @@ export default function Home() {
     }
     // 2. 현재 리스트의 마지막 곡인 경우
     else {
-      // ★ 추가된 조건: '모든 리스트 재생' 모드가 켜져 있을 때만 다음 리스트로 이동
       if (isAutoPlayRef.current) {
         const currentListIndex = currentPlaylists.findIndex(
           (p) => p.id === list.id
@@ -611,15 +610,6 @@ export default function Home() {
             </button>
             <div className="modal-inner-left">
               <div className="playlist-title">
-                <button
-                  className={`autoplay-toggle ${isAutoPlay ? 'on' : 'off'}`}
-                  onClick={() => setIsAutoPlay(!isAutoPlay)}
-                >
-                  <span className="icon">🔁</span>
-                  <span className="text">
-                    {isAutoPlay ? '모든 리스트 재생' : '현재 리스트 반복'}
-                  </span>
-                </button>
                 {playingPlaylistName ? `${playingPlaylistName} 재생 중...` : ''}
               </div>
             </div>
@@ -778,36 +768,56 @@ export default function Home() {
         </div>
       )}
 
-      <div className="timer-container">
-        <button className={`timer-btn ${sleepTime !== null ? 'active' : ''}`}>
-          <span className="icon">⌛</span>
-        </button>
-
-        <div className="timer-menu">
-          {sleepTime === null ? (
-            <div className="timer-options">
-              <p className="menu-title">수면 타이머 설정</p>
-              <button onClick={() => setSleepTime(15 * 60)}>15분</button>
-              <button onClick={() => setSleepTime(30 * 60)}>30분</button>
-              <button onClick={() => setSleepTime(60 * 60)}>1시간</button>
-              <button onClick={() => setSleepTime(120 * 60)}>2시간</button>
-              <button onClick={() => setSleepTime(240 * 60)}>4시간</button>
-            </div>
-          ) : (
-            <div className="timer-active">
-              <p className="menu-title">타이머 작동 중</p>
-              <div className="remaining-time">{formatTime(sleepTime)}</div>
+      <div className="icon-container">
+        <div className="icon-wrapper">
+          <button className={`autoplay-toggle ${isAutoPlay ? 'on' : 'off'}`}>
+            <span className="icon">🔁</span>
+          </button>
+          <div className="setting-menu">
+            <p className="menu-title">재생 모드 설정</p>
+            <div className="menu-options">
               <button
-                className="timer-cancel"
-                onClick={() => setSleepTime(null)}
+                className={!isAutoPlay ? 'active' : ''}
+                onClick={() => setIsAutoPlay(false)}
               >
-                타이머 취소
+                현재 리스트 반복
+              </button>
+              <button
+                className={isAutoPlay ? 'active' : ''}
+                onClick={() => setIsAutoPlay(true)}
+              >
+                모든 리스트 재생
               </button>
             </div>
-          )}
+          </div>
+        </div>
+        <div className="icon-wrapper">
+          <button className={`timer-btn ${sleepTime !== null ? 'active' : ''}`}>
+            <span className="icon">⌛</span>
+          </button>
+          <div className="setting-menu">
+            <p className="menu-title">수면 타이머 설정</p>
+            {sleepTime === null ? (
+              <div className="menu-options">
+                <button onClick={() => setSleepTime(15 * 60)}>15분</button>
+                <button onClick={() => setSleepTime(30 * 60)}>30분</button>
+                <button onClick={() => setSleepTime(60 * 60)}>1시간</button>
+                <button onClick={() => setSleepTime(120 * 60)}>2시간</button>
+              </div>
+            ) : (
+              <div className="menu-active">
+                <div className="remaining-time">{formatTime(sleepTime)}</div>
+                <button
+                  className="cancel-btn"
+                  onClick={() => setSleepTime(null)}
+                >
+                  타이머 취소
+                </button>
+              </div>
+            )}
+          </div>
         </div>
       </div>
-
       <div className="music-var">
         <div className="music-var-title">
           {playingPlaylistName ? `[${playingPlaylistName}] ` : ''}

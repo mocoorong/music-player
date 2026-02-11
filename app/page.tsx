@@ -33,6 +33,7 @@ export default function Home() {
   const [activeTab, setActiveTab] = useState<'search' | 'url'>('search')
   const [isAutoPlay, setIsAutoPlay] = useState(false)
   const [draggedItemIndex, setDraggedItemIndex] = useState<number | null>(null)
+  const [sleepTime, setSleepTime] = useState<number | null>(null)
 
   // 유튜브 플레이어 객체를 담을 Ref
   const playerRef = useRef<any>(null)
@@ -110,6 +111,23 @@ export default function Home() {
     const match = url.match(regExp)
     return match && match[7].length === 11 ? match[7] : ''
   }
+
+  useEffect(() => {
+    if (sleepTime === null) return
+    if (sleepTime <= 0) {
+      setPlay(false) // 음악 정지
+      if (playerRef.current) playerRef.current.pauseVideo()
+      setSleepTime(null)
+      alert('수면 타이머가 종료되어 음악을 정지합니다.')
+      return
+    }
+
+    const timer = setInterval(() => {
+      setSleepTime((prev) => (prev !== null ? prev - 1 : null))
+    }, 1000)
+
+    return () => clearInterval(timer)
+  }, [sleepTime])
 
   // API 객체를 이용한 재생 제어
   const playSpecificSong = (song: Song) => {
@@ -424,6 +442,7 @@ export default function Home() {
   const onDragOver = (e: React.DragEvent) => e.preventDefault()
   const onDrop = (e: React.DragEvent, targetIndex: number) => {
     e.preventDefault()
+    e.stopPropagation()
 
     if (draggedItemIndex === null || draggedItemIndex === targetIndex) return
 
@@ -476,6 +495,12 @@ export default function Home() {
     } catch {
       alert('추가 실패')
     }
+  }
+
+  const formatTime = (seconds: number) => {
+    const m = Math.floor(seconds / 60)
+    const s = seconds % 60
+    return `${m}:${s < 10 ? '0' : ''}${s}`
   }
 
   const center = activeIndex >= 0 ? playlists[activeIndex] : null
@@ -747,6 +772,37 @@ export default function Home() {
           </div>
         </div>
       )}
+
+      <div className="timer-container">
+        <button className={`timer-btn ${sleepTime !== null ? 'active' : ''}`}>
+          <span className="icon">⌛</span>
+        </button>
+
+        <div className="timer-menu">
+          {sleepTime === null ? (
+            <div className="timer-options">
+              <p className="menu-title">수면 타이머 설정</p>
+              <button onClick={() => setSleepTime(0.2 * 60)}>15분</button>
+              <button onClick={() => setSleepTime(15 * 60)}>15분</button>
+              <button onClick={() => setSleepTime(30 * 60)}>30분</button>
+              <button onClick={() => setSleepTime(60 * 60)}>1시간</button>
+              <button onClick={() => setSleepTime(120 * 60)}>2시간</button>
+              <button onClick={() => setSleepTime(240 * 60)}>4시간</button>
+            </div>
+          ) : (
+            <div className="timer-active">
+              <p className="menu-title">타이머 작동 중</p>
+              <div className="remaining-time">{formatTime(sleepTime)}</div>
+              <button
+                className="timer-cancel"
+                onClick={() => setSleepTime(null)}
+              >
+                타이머 취소
+              </button>
+            </div>
+          )}
+        </div>
+      </div>
 
       <div className="music-var">
         <div className="music-var-title">

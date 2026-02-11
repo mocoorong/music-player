@@ -3,6 +3,7 @@
 import {useState, useRef, useEffect} from 'react'
 import './page.css'
 
+// ─── [SECTION 1] 타입 정의 ───
 export type Song = {
   id: string
   title: string
@@ -16,6 +17,7 @@ export type Playlist = {
 }
 
 export default function Home() {
+  // ─── [SECTION 2] 상태(State) 선언 ───
   const [play, setPlay] = useState(false)
   const [currentSong, setCurrentSong] = useState<Song | null>(null)
   const [playingPlaylistName, setPlayingPlaylistName] = useState<string>('')
@@ -35,26 +37,24 @@ export default function Home() {
   const [draggedItemIndex, setDraggedItemIndex] = useState<number | null>(null)
   const [sleepTime, setSleepTime] = useState<number | null>(null)
 
-  // 유튜브 플레이어 객체를 담을 Ref
+  // ─── [SECTION 3] 참조(Ref) 관리 ───
+  // 유튜브 플레이어 객체 Ref
   const playerRef = useRef<any>(null)
 
-  // 최신 상태 참조를 위한 Ref
-  const playlistsRef = useRef(playlists)
-  const playingPlaylistIdRef = useRef(playingPlaylistId)
-  const currentSongRef = useRef(currentSong)
-  const isAutoPlayRef = useRef(isAutoPlay)
+  // 최신 상태들을 하나로 통합한 Ref (이벤트 핸들러에서 최신 상태 참조용)
+  const stateRef = useRef({
+    playlists,
+    playingPlaylistId,
+    currentSong,
+    isAutoPlay,
+  })
 
+  // 상태가 변경될 때마다 Ref를 동기화
   useEffect(() => {
-    isAutoPlayRef.current = isAutoPlay
-  }, [isAutoPlay])
+    stateRef.current = {playlists, playingPlaylistId, currentSong, isAutoPlay}
+  }, [playlists, playingPlaylistId, currentSong, isAutoPlay])
 
-  useEffect(() => {
-    playlistsRef.current = playlists
-    playingPlaylistIdRef.current = playingPlaylistId
-    currentSongRef.current = currentSong
-  }, [playlists, playingPlaylistId, currentSong])
-
-  // 1. YouTube API 스크립트 로드 및 플레이어 초기화
+  // ─── [SECTION 4] 초기 로드 및 유튜브 API 설정 ───
   useEffect(() => {
     const savedPlaylists = localStorage.getItem('my-playlists')
     if (savedPlaylists) {
@@ -68,7 +68,6 @@ export default function Home() {
     }
     setIsMounted(true)
 
-    // API 스크립트 추가
     if (!(window as any).YT) {
       const tag = document.createElement('script')
       tag.src = 'https://www.youtube.com/iframe_api'
@@ -76,7 +75,6 @@ export default function Home() {
       firstScriptTag.parentNode?.insertBefore(tag, firstScriptTag)
     }
 
-    // API 준비 완료 콜백 정의
     ;(window as any).onYouTubeIframeAPIReady = () => {
       playerRef.current = new (window as any).YT.Player('yt-player', {
         height: '100%',
@@ -89,8 +87,8 @@ export default function Home() {
         },
         events: {
           onStateChange: (event: any) => {
-            // YT.PlayerState.ENDED 가 0입니다.
             if (event.data === 0) {
+              // YT.PlayerState.ENDED
               handleNextSong()
             }
           },
@@ -99,12 +97,14 @@ export default function Home() {
     }
   }, [])
 
+  // ─── [SECTION 5] 데이터 영속성 (LocalStorage) ───
   useEffect(() => {
     if (isMounted) {
       localStorage.setItem('my-playlists', JSON.stringify(playlists))
     }
   }, [playlists, isMounted])
 
+  // ─── [SECTION 6] 재생 로직 제어 ───
   const extractVideoId = (url: string) => {
     const regExp =
       /^.*((youtu.be\/)|(v\/)|(\/u\/\w\/)|(embed\/)|(watch\?))\??v?=?([^#&?]*).*/
@@ -112,136 +112,138 @@ export default function Home() {
     return match && match[7].length === 11 ? match[7] : ''
   }
 
+  // 수면 타이머
   useEffect(() => {
     if (sleepTime === null) return
     if (sleepTime <= 0) {
       setPlay(false)
       if (playerRef.current) playerRef.current.pauseVideo()
-
       setSleepTime(null)
-
       setTimeout(() => {
         alert('수면 타이머가 종료되어 음악을 정지합니다.')
       }, 100)
-
       return
     }
-
     const timer = setInterval(() => {
       setSleepTime((prev) => (prev !== null ? prev - 1 : null))
     }, 1000)
-
     return () => clearInterval(timer)
   }, [sleepTime])
 
-  // API 객체를 이용한 재생 제어
   const playSpecificSong = (song: Song) => {
     const videoId = extractVideoId(song.youtubeUrl)
     if (!videoId || !playerRef.current) return
-
     setCurrentSong(song)
     setPlay(true)
-    // postMessage 대신 직접 메서드 호출
     playerRef.current.loadVideoById(videoId)
   }
 
+  const fetchRecommendedNextSong = async (
+    videoId: string,
+    currentTitle: string
+  ): Promise<Song | null> => {
+    const API_KEY = process.env.NEXT_PUBLIC_YOUTUBE_API_KEY
+    if (!API_KEY) return null
+    const query = encodeURIComponent(`${currentTitle} 관련 노래`)
+    const url = `https://www.googleapis.com/youtube/v3/search?part=snippet&maxResults=5&q=${query}&type=video&videoCategoryId=10&key=${API_KEY}`
+    try {
+      const res = await fetch(url)
+      const data = await res.json()
+      if (data.items && data.items.length > 0) {
+        const filtered = data.items.filter(
+          (item: any) => item.id.videoId !== videoId
+        )
+        const video = filtered.length > 0 ? filtered[0] : data.items[0]
+        return {
+          id: crypto.randomUUID(),
+          title: video.snippet.title,
+          thumbnail: video.snippet.thumbnails.high.url,
+          youtubeUrl: `https://www.youtube.com/watch?v=${video.id.videoId}`,
+        }
+      }
+    } catch (error) {
+      console.error('추천 곡 로드 실패:', error)
+    }
+    return null
+  }
+
   const handleNextSong = async () => {
-    const currentPlaylists = playlistsRef.current
-    const list = currentPlaylists.find(
-      (p) => p.id === playingPlaylistIdRef.current
-    )
+    // 통합 Ref로부터 최신 상태 추출
+    const {playlists, playingPlaylistId, currentSong, isAutoPlay} =
+      stateRef.current
+
+    const list = playlists.find((p) => p.id === playingPlaylistId)
     if (!list || list.songs.length === 0) return
 
-    const currentIndex = list.songs.findIndex(
-      (s) => s.id === currentSongRef.current?.id
-    )
+    const currentIndex = list.songs.findIndex((s) => s.id === currentSong?.id)
 
-    // 1. 현재 리스트 안에 다음 곡이 있는 경우
     if (currentIndex !== -1 && currentIndex < list.songs.length - 1) {
       playSpecificSong(list.songs[currentIndex + 1])
-    }
-    // 2. 현재 리스트의 마지막 곡인 경우
-    else {
-      if (isAutoPlayRef.current) {
-        const currentListIndex = currentPlaylists.findIndex(
-          (p) => p.id === list.id
-        )
-
+    } else {
+      if (isAutoPlay) {
+        const currentListIndex = playlists.findIndex((p) => p.id === list.id)
         if (
           currentListIndex !== -1 &&
-          currentListIndex < currentPlaylists.length - 1
+          currentListIndex < playlists.length - 1
         ) {
-          const nextPlaylist = currentPlaylists[currentListIndex + 1]
+          const nextPlaylist = playlists[currentListIndex + 1]
           if (nextPlaylist.songs.length > 0) {
             handlePlaySong(nextPlaylist.songs[0], nextPlaylist)
-            setActiveIndex(currentListIndex + 1) // 앨범 포커스 이동
+            setActiveIndex(currentListIndex + 1)
           } else {
-            // 다음 리스트가 비어있으면 처음 곡으로
             playSpecificSong(list.songs[0])
           }
         } else {
-          // 마지막 리스트의 마지막 곡이면 전체의 처음으로
-          const firstPlaylist = currentPlaylists[0]
+          const firstPlaylist = playlists[0]
           if (firstPlaylist && firstPlaylist.songs.length > 0) {
             handlePlaySong(firstPlaylist.songs[0], firstPlaylist)
-            setActiveIndex(0) // 앨범 포커스 이동
+            setActiveIndex(0)
           }
         }
       } else {
-        // ★ 모드가 꺼져있다면 현재 리스트의 첫 곡으로 돌아가기 (반복)
         playSpecificSong(list.songs[0])
       }
     }
   }
 
   const handlePrevSong = () => {
-    const currentPlaylists = playlistsRef.current
-    const list = currentPlaylists.find(
-      (p) => p.id === playingPlaylistIdRef.current
-    )
+    // 통합 Ref로부터 최신 상태 추출
+    const {playlists, playingPlaylistId, currentSong, isAutoPlay} =
+      stateRef.current
+
+    const list = playlists.find((p) => p.id === playingPlaylistId)
     if (!list || list.songs.length === 0) return
 
-    const currentIndex = list.songs.findIndex(
-      (s) => s.id === currentSongRef.current?.id
-    )
+    const currentIndex = list.songs.findIndex((s) => s.id === currentSong?.id)
 
-    // 1. 리스트 내에 이전 곡이 있는 경우
     if (currentIndex > 0) {
       playSpecificSong(list.songs[currentIndex - 1])
-    }
-    // 2. 현재 리스트의 첫 곡인 경우
-    else {
-      // ★ '모든 리스트 재생' 모드가 켜져 있을 때만 이전 리스트로 이동
-      if (isAutoPlayRef.current) {
-        const currentListIndex = currentPlaylists.findIndex(
-          (p) => p.id === list.id
-        )
-
+    } else {
+      if (isAutoPlay) {
+        const currentListIndex = playlists.findIndex((p) => p.id === list.id)
         if (currentListIndex > 0) {
-          const prevPlaylist = currentPlaylists[currentListIndex - 1]
+          const prevPlaylist = playlists[currentListIndex - 1]
           if (prevPlaylist.songs.length > 0) {
             const lastSongOfPrevList =
               prevPlaylist.songs[prevPlaylist.songs.length - 1]
             handlePlaySong(lastSongOfPrevList, prevPlaylist)
-            setActiveIndex(currentListIndex - 1) // 앨범 포커스 이동
+            setActiveIndex(currentListIndex - 1)
           }
         } else {
-          // 첫 리스트의 첫 곡이면 마지막 리스트의 마지막 곡으로
-          const lastPlaylist = currentPlaylists[currentPlaylists.length - 1]
+          const lastPlaylist = playlists[playlists.length - 1]
           if (lastPlaylist.songs.length > 0) {
             const lastSong = lastPlaylist.songs[lastPlaylist.songs.length - 1]
             handlePlaySong(lastSong, lastPlaylist)
-            setActiveIndex(currentPlaylists.length - 1) // 앨범 포커스 이동
+            setActiveIndex(playlists.length - 1)
           }
         }
       } else {
-        // ★ 모드가 꺼져있다면 현재 리스트의 마지막 곡으로 이동
         const lastIndex = list.songs.length - 1
         playSpecificSong(list.songs[lastIndex])
       }
     }
   }
-  // 재생/일시정지 버튼 동기화
+
   useEffect(() => {
     if (playerRef.current && playerRef.current.getPlayerState) {
       if (play) playerRef.current.playVideo()
@@ -260,6 +262,7 @@ export default function Home() {
     else alert('재생할 곡이 없습니다.')
   }
 
+  // ─── [SECTION 7] 플레이리스트 편집 로직 ───
   const addPlaylist = () => {
     const count = playlists.length
     const newTitle =
@@ -304,12 +307,9 @@ export default function Home() {
 
   const handleSearch = async () => {
     if (!searchQuery.trim()) return
-
     setIsSearching(true)
     const API_KEY = process.env.NEXT_PUBLIC_YOUTUBE_API_KEY
-    // API 호출 URL (동영상 타입만, 최대 5개 결과)
     const url = `https://www.googleapis.com/youtube/v3/search?part=snippet&maxResults=5&q=${encodeURIComponent(searchQuery)}&type=video&key=${API_KEY}`
-
     try {
       const res = await fetch(url)
       const data = await res.json()
@@ -323,52 +323,68 @@ export default function Home() {
     }
   }
 
-  const addSong = async () => {
+  // 데이터 관련 함수
+  const addNewSongByUrl = async (url: string) => {
     const currentActive = playlists[activeIndex]
-    if (!youtubeUrl.trim() || !currentActive) return
-    const videoId = extractVideoId(youtubeUrl)
-    if (!videoId) return alert('유효한 링크가 아닙니다.')
+    if (!url.trim() || !currentActive) return
+
+    const videoId = extractVideoId(url)
+    if (!videoId) return alert('유효한 유튜브 링크가 아닙니다.')
+
     try {
       const res = await fetch(
         `https://noembed.com/embed?url=https://www.youtube.com/watch?v=${videoId}`
       )
       const data = await res.json()
-      const newSong = {
+
+      const newSong: Song = {
         id: crypto.randomUUID(),
         title: data.title || '제목 없음',
         thumbnail: `https://img.youtube.com/vi/${videoId}/hqdefault.jpg`,
-        youtubeUrl,
+        youtubeUrl: url,
       }
+
       setPlaylists((prev) =>
         prev.map((p) =>
           p.id === currentActive.id ? {...p, songs: [...p.songs, newSong]} : p
         )
       )
-      setYoutubeUrl('')
+      return true
     } catch {
       alert('정보를 가져오지 못했습니다.')
+      return false
     }
   }
 
+  const addSong = async () => {
+    const success = await addNewSongByUrl(youtubeUrl)
+    if (success) setYoutubeUrl('')
+  }
+
+  const handleExternalDrop = async (e: React.DragEvent) => {
+    e.preventDefault()
+    const url = e.dataTransfer.getData('text')
+
+    if (url.includes('youtube.com') || url.includes('youtu.be')) {
+      await addNewSongByUrl(url)
+    }
+  }
   const addSongFromSearch = (video: any) => {
     const currentActive = playlists[activeIndex]
     if (!currentActive) return
-
     const newSong: Song = {
       id: crypto.randomUUID(),
       title: video.snippet.title,
       thumbnail: video.snippet.thumbnails.high.url,
       youtubeUrl: `https://www.youtube.com/watch?v=${video.id.videoId}`,
     }
-
     setPlaylists((prev) =>
       prev.map((p) =>
         p.id === currentActive.id ? {...p, songs: [...p.songs, newSong]} : p
       )
     )
-
-    setSearchResults([]) // 검색 결과 닫기
-    setSearchQuery('') // 입력창 비우기
+    setSearchResults([])
+    setSearchQuery('')
   }
 
   const deleteSong = (songId: string, index: number) => {
@@ -391,6 +407,7 @@ export default function Home() {
     }
   }
 
+  // ─── [SECTION 8] UI 편의 기능 (드래그, 스크롤) ───
   const scrollToCurrentSong = () => {
     if (!currentSong || !playingPlaylistId) return
     const playlistIndex = playlists.findIndex((p) => p.id === playingPlaylistId)
@@ -412,58 +429,16 @@ export default function Home() {
   const onDrop = (e: React.DragEvent, targetIndex: number) => {
     e.preventDefault()
     e.stopPropagation()
-
     if (draggedItemIndex === null || draggedItemIndex === targetIndex) return
-
     const currentActive = playlists[activeIndex]
     const newSongs = [...currentActive.songs]
     const draggedItem = newSongs[draggedItemIndex]
-
-    newSongs.splice(draggedItemIndex, 1) // 원래 위치에서 삭제
-    newSongs.splice(targetIndex, 0, draggedItem) // 새 위치에 삽입
-
+    newSongs.splice(draggedItemIndex, 1)
+    newSongs.splice(targetIndex, 0, draggedItem)
     setPlaylists((prev) =>
       prev.map((p) => (p.id === currentActive.id ? {...p, songs: newSongs} : p))
     )
     setDraggedItemIndex(null)
-  }
-
-  const handleExternalDrop = async (e: React.DragEvent) => {
-    e.preventDefault()
-
-    const url = e.dataTransfer.getData('text')
-
-    if (!url.includes('youtube.com') && !url.includes('youtu.be')) {
-      return
-    }
-
-    const videoId = extractVideoId(url)
-    if (!videoId) return
-
-    const currentActive = playlists[activeIndex]
-    if (!currentActive) return
-
-    try {
-      const res = await fetch(
-        `https://noembed.com/embed?url=https://www.youtube.com/watch?v=${videoId}`
-      )
-      const data = await res.json()
-
-      const newSong: Song = {
-        id: crypto.randomUUID(),
-        title: data.title || '제목 없음',
-        thumbnail: `https://img.youtube.com/vi/${videoId}/hqdefault.jpg`,
-        youtubeUrl: url,
-      }
-
-      setPlaylists((prev) =>
-        prev.map((p) =>
-          p.id === currentActive.id ? {...p, songs: [...p.songs, newSong]} : p
-        )
-      )
-    } catch {
-      alert('추가 실패')
-    }
   }
 
   const formatTime = (seconds: number) => {
@@ -472,11 +447,13 @@ export default function Home() {
     return `${m}:${s < 10 ? '0' : ''}${s}`
   }
 
+  // ─── [SECTION 9] 렌더링 변수 ───
   const center = activeIndex >= 0 ? playlists[activeIndex] : null
   const left = activeIndex > 0 ? playlists[activeIndex - 1] : null
   const rightAlbum =
     activeIndex < playlists.length - 1 ? playlists[activeIndex + 1] : null
 
+  // ─── [SECTION 10] JSX 레이아웃 ───
   return (
     <div className="main-bg">
       <div
@@ -598,14 +575,13 @@ export default function Home() {
                       {center.title} ✎
                     </p>
                   )}
-
                   <div className="search-box-container">
                     <select
                       className="search-dropdown"
                       value={activeTab}
                       onChange={(e) => {
                         setActiveTab(e.target.value as 'search' | 'url')
-                        setSearchResults([]) // 모드 바꿀 때 검색 결과 초기화
+                        setSearchResults([])
                       }}
                     >
                       <option value="search">유튜브 검색으로 추가</option>
@@ -642,7 +618,6 @@ export default function Home() {
                         </>
                       )}
                     </div>
-
                     {activeTab === 'search' && searchResults.length > 0 && (
                       <>
                         <div
@@ -707,7 +682,6 @@ export default function Home() {
                       className={`song-item ${currentSong?.id === song.id ? 'active-playing' : ''}`}
                       onClick={() => handlePlaySong(song, center)}
                     >
-                      {' '}
                       <div
                         className="drag-handle"
                         draggable
@@ -791,6 +765,7 @@ export default function Home() {
           </div>
         </div>
       </div>
+
       <div className="music-var">
         <div className="music-var-title">
           {playingPlaylistName ? `[${playingPlaylistName}] ` : ''}

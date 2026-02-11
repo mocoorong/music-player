@@ -115,10 +115,15 @@ export default function Home() {
   useEffect(() => {
     if (sleepTime === null) return
     if (sleepTime <= 0) {
-      setPlay(false) // 음악 정지
+      setPlay(false)
       if (playerRef.current) playerRef.current.pauseVideo()
+
       setSleepTime(null)
-      alert('수면 타이머가 종료되어 음악을 정지합니다.')
+
+      setTimeout(() => {
+        alert('수면 타이머가 종료되어 음악을 정지합니다.')
+      }, 100)
+
       return
     }
 
@@ -782,7 +787,6 @@ export default function Home() {
           {sleepTime === null ? (
             <div className="timer-options">
               <p className="menu-title">수면 타이머 설정</p>
-              <button onClick={() => setSleepTime(0.2 * 60)}>15분</button>
               <button onClick={() => setSleepTime(15 * 60)}>15분</button>
               <button onClick={() => setSleepTime(30 * 60)}>30분</button>
               <button onClick={() => setSleepTime(60 * 60)}>1시간</button>

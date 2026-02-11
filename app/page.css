@@ -2,6 +2,22 @@ body {
   margin: 0;
 }
 
+.modal-inner-list {
+  -ms-overflow-style: none; /* IE, Edge */
+  scrollbar-width: none; /* Firefox */
+}
+.modal-inner-list::-webkit-scrollbar {
+  display: none; /* Chrome, Safari, Opera */
+}
+
+.search-results-dropdown {
+  -ms-overflow-style: none; /* IE, Edge */
+  scrollbar-width: none; /* Firefox */
+}
+.search-results-dropdown::-webkit-scrollbar {
+  display: none; /* Chrome, Safari, Opera */
+}
+
 .main-bg {
   background-image: url('/img/main-bg.jpg');
   background-size: cover;
@@ -522,6 +538,8 @@ body {
   left: 0;
   right: 0;
   bottom: 0;
+  width: 100vw;
+  height: 100vh;
   z-index: 998;
 }
 

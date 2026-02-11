@@ -541,6 +541,15 @@ export default function Home() {
 
       {modal && center && (
         <div className="modal-bg" onClick={() => setModal(false)}>
+          {activeTab === 'search' && searchResults.length > 0 && (
+            <div
+              className="dropdown-layer"
+              onClick={(e) => {
+                e.stopPropagation()
+                setSearchResults([])
+              }}
+            />
+          )}
           <div className="modal-inner" onClick={(e) => e.stopPropagation()}>
             <button
               className="playlist-delete-anchor"
@@ -620,10 +629,6 @@ export default function Home() {
                     </div>
                     {activeTab === 'search' && searchResults.length > 0 && (
                       <>
-                        <div
-                          className="dropdown-layer"
-                          onClick={() => setSearchResults([])}
-                        />
                         <div className="search-results-dropdown">
                           {searchResults.map((video) => (
                             <div

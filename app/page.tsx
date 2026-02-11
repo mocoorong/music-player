@@ -38,10 +38,7 @@ export default function Home() {
   const [sleepTime, setSleepTime] = useState<number | null>(null)
 
   // ─── [SECTION 3] 참조(Ref) 관리 ───
-  // 유튜브 플레이어 객체 Ref
   const playerRef = useRef<any>(null)
-
-  // 최신 상태들을 하나로 통합한 Ref (이벤트 핸들러에서 최신 상태 참조용)
   const stateRef = useRef({
     playlists,
     playingPlaylistId,
@@ -49,7 +46,6 @@ export default function Home() {
     isAutoPlay,
   })
 
-  // 상태가 변경될 때마다 Ref를 동기화
   useEffect(() => {
     stateRef.current = {playlists, playingPlaylistId, currentSong, isAutoPlay}
   }, [playlists, playingPlaylistId, currentSong, isAutoPlay])
@@ -88,7 +84,6 @@ export default function Home() {
         events: {
           onStateChange: (event: any) => {
             if (event.data === 0) {
-              // YT.PlayerState.ENDED
               handleNextSong()
             }
           },
@@ -112,7 +107,6 @@ export default function Home() {
     return match && match[7].length === 11 ? match[7] : ''
   }
 
-  // 수면 타이머
   useEffect(() => {
     if (sleepTime === null) return
     if (sleepTime <= 0) {
@@ -138,43 +132,11 @@ export default function Home() {
     playerRef.current.loadVideoById(videoId)
   }
 
-  const fetchRecommendedNextSong = async (
-    videoId: string,
-    currentTitle: string
-  ): Promise<Song | null> => {
-    const API_KEY = process.env.NEXT_PUBLIC_YOUTUBE_API_KEY
-    if (!API_KEY) return null
-    const query = encodeURIComponent(`${currentTitle} 관련 노래`)
-    const url = `https://www.googleapis.com/youtube/v3/search?part=snippet&maxResults=5&q=${query}&type=video&videoCategoryId=10&key=${API_KEY}`
-    try {
-      const res = await fetch(url)
-      const data = await res.json()
-      if (data.items && data.items.length > 0) {
-        const filtered = data.items.filter(
-          (item: any) => item.id.videoId !== videoId
-        )
-        const video = filtered.length > 0 ? filtered[0] : data.items[0]
-        return {
-          id: crypto.randomUUID(),
-          title: video.snippet.title,
-          thumbnail: video.snippet.thumbnails.high.url,
-          youtubeUrl: `https://www.youtube.com/watch?v=${video.id.videoId}`,
-        }
-      }
-    } catch (error) {
-      console.error('추천 곡 로드 실패:', error)
-    }
-    return null
-  }
-
   const handleNextSong = async () => {
-    // 통합 Ref로부터 최신 상태 추출
     const {playlists, playingPlaylistId, currentSong, isAutoPlay} =
       stateRef.current
-
     const list = playlists.find((p) => p.id === playingPlaylistId)
     if (!list || list.songs.length === 0) return
-
     const currentIndex = list.songs.findIndex((s) => s.id === currentSong?.id)
 
     if (currentIndex !== -1 && currentIndex < list.songs.length - 1) {
@@ -207,13 +169,10 @@ export default function Home() {
   }
 
   const handlePrevSong = () => {
-    // 통합 Ref로부터 최신 상태 추출
     const {playlists, playingPlaylistId, currentSong, isAutoPlay} =
       stateRef.current
-
     const list = playlists.find((p) => p.id === playingPlaylistId)
     if (!list || list.songs.length === 0) return
-
     const currentIndex = list.songs.findIndex((s) => s.id === currentSong?.id)
 
     if (currentIndex > 0) {
@@ -313,9 +272,7 @@ export default function Home() {
     try {
       const res = await fetch(url)
       const data = await res.json()
-      if (data.items) {
-        setSearchResults(data.items)
-      }
+      if (data.items) setSearchResults(data.items)
     } catch (error) {
       console.error('검색 중 오류 발생:', error)
     } finally {
@@ -323,27 +280,22 @@ export default function Home() {
     }
   }
 
-  // 데이터 관련 함수
   const addNewSongByUrl = async (url: string) => {
     const currentActive = playlists[activeIndex]
     if (!url.trim() || !currentActive) return
-
     const videoId = extractVideoId(url)
     if (!videoId) return alert('유효한 유튜브 링크가 아닙니다.')
-
     try {
       const res = await fetch(
         `https://noembed.com/embed?url=https://www.youtube.com/watch?v=${videoId}`
       )
       const data = await res.json()
-
       const newSong: Song = {
         id: crypto.randomUUID(),
         title: data.title || '제목 없음',
         thumbnail: `https://img.youtube.com/vi/${videoId}/hqdefault.jpg`,
         youtubeUrl: url,
       }
-
       setPlaylists((prev) =>
         prev.map((p) =>
           p.id === currentActive.id ? {...p, songs: [...p.songs, newSong]} : p
@@ -364,11 +316,11 @@ export default function Home() {
   const handleExternalDrop = async (e: React.DragEvent) => {
     e.preventDefault()
     const url = e.dataTransfer.getData('text')
-
     if (url.includes('youtube.com') || url.includes('youtu.be')) {
       await addNewSongByUrl(url)
     }
   }
+
   const addSongFromSearch = (video: any) => {
     const currentActive = playlists[activeIndex]
     if (!currentActive) return
@@ -407,7 +359,7 @@ export default function Home() {
     }
   }
 
-  // ─── [SECTION 8] UI 편의 기능 (드래그, 스크롤) ───
+  // ─── [SECTION 8] UI 편의 기능 ───
   const scrollToCurrentSong = () => {
     if (!currentSong || !playingPlaylistId) return
     const playlistIndex = playlists.findIndex((p) => p.id === playingPlaylistId)
@@ -424,17 +376,35 @@ export default function Home() {
     }, 100)
   }
 
-  const onDragStart = (index: number) => setDraggedItemIndex(index)
-  const onDragOver = (e: React.DragEvent) => e.preventDefault()
+  const onDragStart = (e: React.DragEvent, index: number) => {
+    setDraggedItemIndex(index)
+    e.dataTransfer.effectAllowed = 'move'
+    const dragTarget = (e.target as HTMLElement).closest('.song-item')
+    if (dragTarget) {
+      e.dataTransfer.setDragImage(dragTarget, 20, 20)
+    }
+  }
+
+  const onDragOver = (e: React.DragEvent) => {
+    e.preventDefault()
+    e.dataTransfer.dropEffect = 'move'
+  }
+
   const onDrop = (e: React.DragEvent, targetIndex: number) => {
     e.preventDefault()
     e.stopPropagation()
-    if (draggedItemIndex === null || draggedItemIndex === targetIndex) return
+    if (draggedItemIndex === null || draggedItemIndex === targetIndex) {
+      setDraggedItemIndex(null)
+      return
+    }
     const currentActive = playlists[activeIndex]
+    if (!currentActive) return
+
     const newSongs = [...currentActive.songs]
     const draggedItem = newSongs[draggedItemIndex]
     newSongs.splice(draggedItemIndex, 1)
     newSongs.splice(targetIndex, 0, draggedItem)
+
     setPlaylists((prev) =>
       prev.map((p) => (p.id === currentActive.id ? {...p, songs: newSongs} : p))
     )
@@ -547,6 +517,7 @@ export default function Home() {
               onClick={(e) => {
                 e.stopPropagation()
                 setSearchResults([])
+                setSearchQuery('')
               }}
             />
           )}
@@ -628,43 +599,41 @@ export default function Home() {
                       )}
                     </div>
                     {activeTab === 'search' && searchResults.length > 0 && (
-                      <>
-                        <div className="search-results-dropdown">
-                          {searchResults.map((video) => (
-                            <div
-                              key={video.id.videoId}
-                              className="search-result-item"
-                              onClick={() => addSongFromSearch(video)}
-                            >
-                              <img
-                                src={video.snippet.thumbnails.default.url}
-                                alt=""
-                              />
-                              <div className="result-info">
-                                <p className="result-title">
-                                  {video.snippet.title}
-                                </p>
-                                <p className="result-channel">
-                                  {video.snippet.channelTitle}
-                                </p>
-                              </div>
-                            </div>
-                          ))}
-                          <button
-                            className="search-close-btn"
-                            onClick={() => setSearchResults([])}
+                      <div className="search-results-dropdown">
+                        {searchResults.map((video) => (
+                          <div
+                            key={video.id.videoId}
+                            className="search-result-item"
+                            onClick={() => addSongFromSearch(video)}
                           >
-                            닫기
-                          </button>
-                        </div>
-                      </>
+                            <img
+                              src={video.snippet.thumbnails.default.url}
+                              alt=""
+                            />
+                            <div className="result-info">
+                              <p className="result-title">
+                                {video.snippet.title}
+                              </p>
+                              <p className="result-channel">
+                                {video.snippet.channelTitle}
+                              </p>
+                            </div>
+                          </div>
+                        ))}
+                        <button
+                          className="search-close-btn"
+                          onClick={() => setSearchResults([])}
+                        >
+                          닫기
+                        </button>
+                      </div>
                     )}
                   </div>
                 </div>
               </div>
               <div
                 className="modal-inner-list"
-                onDragOver={(e) => e.preventDefault()}
+                onDragOver={onDragOver}
                 onDrop={handleExternalDrop}
               >
                 {center.songs.length === 0 && (
@@ -686,13 +655,13 @@ export default function Home() {
                       id={`song-${song.id}`}
                       className={`song-item ${currentSong?.id === song.id ? 'active-playing' : ''}`}
                       onClick={() => handlePlaySong(song, center)}
+                      onDragOver={onDragOver}
+                      onDrop={(e) => onDrop(e, i)}
                     >
                       <div
                         className="drag-handle"
                         draggable
-                        onDragStart={() => onDragStart(i)}
-                        onDragOver={onDragOver}
-                        onDrop={(e) => onDrop(e, i)}
+                        onDragStart={(e) => onDragStart(e, i)}
                       >
                         ☰
                       </div>

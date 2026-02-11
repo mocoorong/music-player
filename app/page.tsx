@@ -32,6 +32,7 @@ export default function Home() {
   const [isSearching, setIsSearching] = useState(false)
   const [activeTab, setActiveTab] = useState<'search' | 'url'>('search')
   const [isAutoPlay, setIsAutoPlay] = useState(false)
+  const [draggedItemIndex, setDraggedItemIndex] = useState<number | null>(null)
 
   // 유튜브 플레이어 객체를 담을 Ref
   const playerRef = useRef<any>(null)
@@ -383,18 +384,6 @@ export default function Home() {
     setSearchQuery('') // 입력창 비우기
   }
 
-  const moveSong = (index: number, direction: 'up' | 'down') => {
-    const currentActive = playlists[activeIndex]
-    if (!currentActive) return
-    const newSongs = [...currentActive.songs]
-    const target = direction === 'up' ? index - 1 : index + 1
-    if (target < 0 || target >= newSongs.length) return
-    ;[newSongs[index], newSongs[target]] = [newSongs[target], newSongs[index]]
-    setPlaylists((prev) =>
-      prev.map((p) => (p.id === currentActive.id ? {...p, songs: newSongs} : p))
-    )
-  }
-
   const deleteSong = (songId: string, index: number) => {
     const currentActive = playlists[activeIndex]
     if (!currentActive) return
@@ -429,6 +418,64 @@ export default function Home() {
         setTimeout(() => el.classList.remove('highlight-song'), 2000)
       }
     }, 100)
+  }
+
+  const onDragStart = (index: number) => setDraggedItemIndex(index)
+  const onDragOver = (e: React.DragEvent) => e.preventDefault()
+  const onDrop = (e: React.DragEvent, targetIndex: number) => {
+    e.preventDefault()
+
+    if (draggedItemIndex === null || draggedItemIndex === targetIndex) return
+
+    const currentActive = playlists[activeIndex]
+    const newSongs = [...currentActive.songs]
+    const draggedItem = newSongs[draggedItemIndex]
+
+    newSongs.splice(draggedItemIndex, 1) // 원래 위치에서 삭제
+    newSongs.splice(targetIndex, 0, draggedItem) // 새 위치에 삽입
+
+    setPlaylists((prev) =>
+      prev.map((p) => (p.id === currentActive.id ? {...p, songs: newSongs} : p))
+    )
+    setDraggedItemIndex(null)
+  }
+
+  const handleExternalDrop = async (e: React.DragEvent) => {
+    e.preventDefault()
+
+    const url = e.dataTransfer.getData('text')
+
+    if (!url.includes('youtube.com') && !url.includes('youtu.be')) {
+      return
+    }
+
+    const videoId = extractVideoId(url)
+    if (!videoId) return
+
+    const currentActive = playlists[activeIndex]
+    if (!currentActive) return
+
+    try {
+      const res = await fetch(
+        `https://noembed.com/embed?url=https://www.youtube.com/watch?v=${videoId}`
+      )
+      const data = await res.json()
+
+      const newSong: Song = {
+        id: crypto.randomUUID(),
+        title: data.title || '제목 없음',
+        thumbnail: `https://img.youtube.com/vi/${videoId}/hqdefault.jpg`,
+        youtubeUrl: url,
+      }
+
+      setPlaylists((prev) =>
+        prev.map((p) =>
+          p.id === currentActive.id ? {...p, songs: [...p.songs, newSong]} : p
+        )
+      )
+    } catch {
+      alert('추가 실패')
+    }
   }
 
   const center = activeIndex >= 0 ? playlists[activeIndex] : null
@@ -652,9 +699,15 @@ export default function Home() {
                   </div>
                 </div>
               </div>
-              <div className="modal-inner-list">
+              <div
+                className="modal-inner-list"
+                onDragOver={(e) => e.preventDefault()}
+                onDrop={handleExternalDrop}
+              >
                 {center.songs.length === 0 && (
-                  <div className="no-songs-msg">곡을 추가해주세요.</div>
+                  <div className="no-songs-msg">
+                    곡을 추가하거나 링크를 드래그해 오세요.
+                  </div>
                 )}
                 {center.songs
                   .filter((song) =>
@@ -664,6 +717,10 @@ export default function Home() {
                     <div
                       key={song.id}
                       id={`song-${song.id}`}
+                      draggable
+                      onDragStart={() => onDragStart(i)}
+                      onDragOver={onDragOver}
+                      onDrop={(e) => onDrop(e, i)}
                       className={`song-item ${currentSong?.id === song.id ? 'active-playing' : ''}`}
                       onClick={() => handlePlaySong(song, center)}
                     >
@@ -679,8 +736,6 @@ export default function Home() {
                         className="song-controls"
                         onClick={(e) => e.stopPropagation()}
                       >
-                        <button onClick={() => moveSong(i, 'up')}>▲</button>
-                        <button onClick={() => moveSong(i, 'down')}>▼</button>
                         <button onClick={() => deleteSong(song.id, i)}>
                           X
                         </button>

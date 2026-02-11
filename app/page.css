@@ -360,13 +360,16 @@ body {
   cursor: grabbing;
 }
 .song-item {
-  width: 100%;
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  justify-content: flex-start;
+  gap: 3%;
   padding: 1% 3%;
   box-sizing: border-box;
   border-bottom: 1px solid #eee;
+}
+.song-item.active-playing .drag-handle {
+  color: white;
 }
 
 .song-item.active-playing {
@@ -378,8 +381,9 @@ body {
 .song-info {
   display: flex;
   align-items: center;
-  gap: 5%;
-  width: 70%;
+  gap: 3%;
+  width: 100%;
+  min-width: 0;
 }
 
 .no-songs-msg {
@@ -422,6 +426,7 @@ body {
   border: 1px solid #ccc;
   border-radius: 3px;
   font-size: 0.8rem;
+  margin-left: auto;
 }
 .song-item.active-playing .song-controls button {
   color: white;

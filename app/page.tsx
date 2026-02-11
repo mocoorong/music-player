@@ -729,19 +729,29 @@ export default function Home() {
                 )}
                 {center.songs
                   .filter((song) =>
-                    song.title.toLowerCase().includes(searchQuery.toLowerCase())
+                    activeTab === 'search'
+                      ? song.title
+                          .toLowerCase()
+                          .includes(searchQuery.toLowerCase())
+                      : true
                   )
                   .map((song, i) => (
                     <div
                       key={song.id}
                       id={`song-${song.id}`}
-                      draggable
-                      onDragStart={() => onDragStart(i)}
-                      onDragOver={onDragOver}
-                      onDrop={(e) => onDrop(e, i)}
                       className={`song-item ${currentSong?.id === song.id ? 'active-playing' : ''}`}
                       onClick={() => handlePlaySong(song, center)}
                     >
+                      {' '}
+                      <div
+                        className="drag-handle"
+                        draggable
+                        onDragStart={() => onDragStart(i)}
+                        onDragOver={onDragOver}
+                        onDrop={(e) => onDrop(e, i)}
+                      >
+                        ☰
+                      </div>
                       <div className="song-info">
                         <img
                           src={song.thumbnail}

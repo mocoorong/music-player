@@ -123,9 +123,9 @@ body {
 }
 .playlist-title {
   position: absolute;
-  top: 20px;
-  left: 20px;
-  width: 92%;
+  top: 3%;
+  left: 3%;
+  width: 94%;
   color: #fff;
   display: flex;
   justify-content: space-between;
@@ -276,19 +276,15 @@ body {
 }
 
 .on-modal {
-  width: 30%;
+  width: 34%;
   aspect-ratio: 16 / 9;
-  top: 45%;
-  left: 26%;
+  top: 47%;
+  left: 28%;
   transform: translate(-50%, -50%);
   opacity: 1;
   pointer-events: all;
 }
 
-.youtube-container iframe {
-  width: 100%;
-  height: 100%;
-}
 .modal-bg {
   position: fixed;
   top: 0;
@@ -305,7 +301,7 @@ body {
 .modal-inner {
   position: relative;
   width: 80%;
-  height: 60%;
+  height: 55%;
   background: black;
   border-radius: 10px;
 }
@@ -314,7 +310,7 @@ body {
   position: absolute;
   top: 0;
   left: 0;
-  width: 40%;
+  width: 45%;
   height: 100%;
   display: flex;
   justify-content: center;
@@ -322,20 +318,7 @@ body {
   flex-direction: column;
 }
 
-.video-wrapper {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 10px;
-  width: 90%;
-  height: 50%;
-}
-
 .modal-video-title {
-  position: absolute;
-  bottom: -5%;
-  width: 100%;
-  height: 40%;
   color: white;
   justify-content: center;
   text-align: center;
@@ -349,19 +332,13 @@ body {
   align-items: center;
 }
 
-.modal-inner-youtube iframe {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-}
-
 .modal-inner-right {
   position: absolute;
   top: 50%;
   transform: translateY(-50%);
   right: 0;
   background: white;
-  width: 60%;
+  width: 55%;
   height: 100%;
   box-sizing: border-box;
   border: 10px solid black;

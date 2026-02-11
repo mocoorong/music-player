@@ -145,41 +145,6 @@ export default function Home() {
     playerRef.current.loadVideoById(videoId)
   }
 
-  const fetchRecommendedNextSong = async (
-    videoId: string,
-    currentTitle: string // 제목을 파라미터로 추가
-  ): Promise<Song | null> => {
-    const API_KEY = process.env.NEXT_PUBLIC_YOUTUBE_API_KEY
-    if (!API_KEY) return null
-
-    // '관련 영상' 대신 '현재 제목 + 관련' 키워드로 검색 (더 확실한 방법)
-    const query = encodeURIComponent(`${currentTitle} 관련 노래`)
-    const url = `https://www.googleapis.com/youtube/v3/search?part=snippet&maxResults=5&q=${query}&type=video&videoCategoryId=10&key=${API_KEY}`
-
-    try {
-      const res = await fetch(url)
-      const data = await res.json()
-
-      if (data.items && data.items.length > 0) {
-        // 현재 재생 중인 영상(videoId)을 제외한 첫 번째 결과 선택
-        const filtered = data.items.filter(
-          (item: any) => item.id.videoId !== videoId
-        )
-        const video = filtered.length > 0 ? filtered[0] : data.items[0]
-
-        return {
-          id: crypto.randomUUID(),
-          title: video.snippet.title,
-          thumbnail: video.snippet.thumbnails.high.url,
-          youtubeUrl: `https://www.youtube.com/watch?v=${video.id.videoId}`,
-        }
-      }
-    } catch (error) {
-      console.error('추천 곡 로드 실패:', error)
-    }
-    return null
-  }
-
   const handleNextSong = async () => {
     const currentPlaylists = playlistsRef.current
     const list = currentPlaylists.find(

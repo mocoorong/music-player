@@ -479,7 +479,8 @@ body {
 }
 .playlist-delete-anchor {
   position: absolute;
-  bottom: 3px;
+  top: 0;
+  right: 0;
   background: none;
   border: none;
   color: #ccc;

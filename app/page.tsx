@@ -248,7 +248,7 @@ export default function Home() {
   }
 
   const deletePlaylist = (id: string) => {
-    if (!confirm('삭제하시겠습니까?')) return
+    if (!confirm('이 플레이 리스트를 삭제하시겠습니까?')) return
     const next = playlists.filter((p) => p.id !== id)
     if (playingPlaylistId === id) {
       setCurrentSong(null)
@@ -495,6 +495,15 @@ export default function Home() {
             >
               <div className="play-icon-inner" />
             </button>
+            <button
+              className="playlist-delete-anchor"
+              onClick={(e) => {
+                e.stopPropagation()
+                deletePlaylist(center.id)
+              }}
+            >
+              x
+            </button>
           </div>
         )}
         {rightAlbum ? (
@@ -531,12 +540,6 @@ export default function Home() {
             />
           )}
           <div className="modal-inner" onClick={(e) => e.stopPropagation()}>
-            <button
-              className="playlist-delete-anchor"
-              onClick={() => deletePlaylist(center.id)}
-            >
-              삭제
-            </button>
             <div className="modal-inner-left">
               <div className="playlist-title">
                 {playingPlaylistName ? `${playingPlaylistName} 재생 중...` : ''}

@@ -109,6 +109,20 @@ export default function Home() {
   }
 
   useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        setSearchResults([])
+      }
+    }
+
+    window.addEventListener('keydown', handleKeyDown)
+
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown)
+    }
+  }, [])
+
+  useEffect(() => {
     if (sleepTime === null) return
     if (sleepTime <= 0) {
       setPlay(false)
@@ -125,13 +139,12 @@ export default function Home() {
     return () => clearInterval(timer)
   }, [sleepTime])
 
-  const playSpecificSong = (song: Song) => {
-    const videoId = extractVideoId(song.youtubeUrl)
-    if (!videoId || !playerRef.current) return
-    setCurrentSong(song)
-    setPlay(true)
-    playerRef.current.loadVideoById(videoId)
-  }
+  useEffect(() => {
+    if (!modal) {
+      setSearchResults([])
+      setSearchQuery('')
+    }
+  }, [modal])
 
   useEffect(() => {
     const closeAll = () => setOpenMenu(null)
@@ -140,6 +153,14 @@ export default function Home() {
     }
     return () => window.removeEventListener('click', closeAll)
   }, [openMenu])
+
+  const playSpecificSong = (song: Song) => {
+    const videoId = extractVideoId(song.youtubeUrl)
+    if (!videoId || !playerRef.current) return
+    setCurrentSong(song)
+    setPlay(true)
+    playerRef.current.loadVideoById(videoId)
+  }
 
   const handleNextSong = async () => {
     const {playlists, playingPlaylistId, currentSong, isAutoPlay} =
@@ -324,6 +345,7 @@ export default function Home() {
 
   const handleExternalDrop = async (e: React.DragEvent) => {
     e.preventDefault()
+    e.stopPropagation()
     const url = e.dataTransfer.getData('text')
     if (url.includes('youtube.com') || url.includes('youtu.be')) {
       await addNewSongByUrl(url)
@@ -401,7 +423,7 @@ export default function Home() {
 
   const onDrop = (e: React.DragEvent, targetIndex: number) => {
     e.preventDefault()
-    e.stopPropagation()
+
     if (draggedItemIndex === null || draggedItemIndex === targetIndex) {
       setDraggedItemIndex(null)
       return
@@ -529,16 +551,6 @@ export default function Home() {
 
       {modal && center && (
         <div className="modal-bg" onClick={() => setModal(false)}>
-          {activeTab === 'search' && searchResults.length > 0 && (
-            <div
-              className="dropdown-layer"
-              onClick={(e) => {
-                e.stopPropagation()
-                setSearchResults([])
-                setSearchQuery('')
-              }}
-            />
-          )}
           <div className="modal-inner" onClick={(e) => e.stopPropagation()}>
             <div className="modal-inner-left">
               <div className="playlist-title">

@@ -36,6 +36,7 @@ export default function Home() {
   const [isAutoPlay, setIsAutoPlay] = useState(false)
   const [draggedItemIndex, setDraggedItemIndex] = useState<number | null>(null)
   const [sleepTime, setSleepTime] = useState<number | null>(null)
+  const [openMenu, setOpenMenu] = useState<'autoplay' | 'timer' | null>(null)
 
   // ─── [SECTION 3] 참조(Ref) 관리 ───
   const playerRef = useRef<any>(null)
@@ -131,6 +132,14 @@ export default function Home() {
     setPlay(true)
     playerRef.current.loadVideoById(videoId)
   }
+
+  useEffect(() => {
+    const closeAll = () => setOpenMenu(null)
+    if (openMenu) {
+      window.addEventListener('click', closeAll)
+    }
+    return () => window.removeEventListener('click', closeAll)
+  }, [openMenu])
 
   const handleNextSong = async () => {
     const {playlists, playingPlaylistId, currentSong, isAutoPlay} =
@@ -690,56 +699,69 @@ export default function Home() {
       )}
 
       <div className="icon-container">
-        <div className="icon-wrapper">
-          <button className={`autoplay-toggle ${isAutoPlay ? 'on' : 'off'}`}>
-            <span className="icon">🔁</span>
-          </button>
-          <div className="setting-menu">
-            <p className="menu-title">재생 모드 설정</p>
-            <div className="menu-options">
-              <button
-                className={!isAutoPlay ? 'active' : ''}
-                onClick={() => setIsAutoPlay(false)}
-              >
-                현재 리스트 반복
-              </button>
-              <button
-                className={isAutoPlay ? 'active' : ''}
-                onClick={() => setIsAutoPlay(true)}
-              >
-                모든 리스트 재생
-              </button>
+        <div className="icon-menu-point">
+          <div className="icon-wrapper" onClick={(e) => e.stopPropagation()}>
+            <button
+              className={`autoplay-toggle ${isAutoPlay ? 'on' : 'off'}`}
+              onClick={() =>
+                setOpenMenu(openMenu === 'autoplay' ? null : 'autoplay')
+              }
+            >
+              <span className="icon">🔁</span>
+            </button>
+            <div
+              className={`setting-menu ${openMenu === 'autoplay' ? 'is-open' : ''}`}
+            >
+              <p className="menu-title">재생 모드 설정</p>
+              <div className="menu-options">
+                <button
+                  className={!isAutoPlay ? 'active' : ''}
+                  onClick={() => setIsAutoPlay(false)}
+                >
+                  현재 리스트 반복
+                </button>
+                <button
+                  className={isAutoPlay ? 'active' : ''}
+                  onClick={() => setIsAutoPlay(true)}
+                >
+                  모든 리스트 재생
+                </button>
+              </div>
+            </div>
+          </div>
+          <div className="icon-wrapper" onClick={(e) => e.stopPropagation()}>
+            <button
+              className={`timer-btn ${sleepTime !== null ? 'active' : ''}`}
+              onClick={() => setOpenMenu(openMenu === 'timer' ? null : 'timer')}
+            >
+              <span className="icon">⌛</span>
+            </button>
+            <div
+              className={`setting-menu ${openMenu === 'timer' ? 'is-open' : ''}`}
+            >
+              <p className="menu-title">수면 타이머 설정</p>
+              {sleepTime === null ? (
+                <div className="menu-options">
+                  <button onClick={() => setSleepTime(15 * 60)}>15분</button>
+                  <button onClick={() => setSleepTime(30 * 60)}>30분</button>
+                  <button onClick={() => setSleepTime(60 * 60)}>1시간</button>
+                  <button onClick={() => setSleepTime(120 * 60)}>2시간</button>
+                </div>
+              ) : (
+                <div className="menu-active">
+                  <div className="remaining-time">{formatTime(sleepTime)}</div>
+                  <button
+                    className="cancel-btn"
+                    onClick={() => setSleepTime(null)}
+                  >
+                    타이머 취소
+                  </button>
+                </div>
+              )}
             </div>
           </div>
         </div>
-        <div className="icon-wrapper">
-          <button className={`timer-btn ${sleepTime !== null ? 'active' : ''}`}>
-            <span className="icon">⌛</span>
-          </button>
-          <div className="setting-menu">
-            <p className="menu-title">수면 타이머 설정</p>
-            {sleepTime === null ? (
-              <div className="menu-options">
-                <button onClick={() => setSleepTime(15 * 60)}>15분</button>
-                <button onClick={() => setSleepTime(30 * 60)}>30분</button>
-                <button onClick={() => setSleepTime(60 * 60)}>1시간</button>
-                <button onClick={() => setSleepTime(120 * 60)}>2시간</button>
-              </div>
-            ) : (
-              <div className="menu-active">
-                <div className="remaining-time">{formatTime(sleepTime)}</div>
-                <button
-                  className="cancel-btn"
-                  onClick={() => setSleepTime(null)}
-                >
-                  타이머 취소
-                </button>
-              </div>
-            )}
-          </div>
-        </div>
       </div>
-
       <div className="music-var">
         <div className="music-var-title">
           {playingPlaylistName ? `[${playingPlaylistName}] ` : ''}

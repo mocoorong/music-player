@@ -639,7 +639,6 @@ body {
   opacity: 0;
   visibility: hidden;
   transform: translateY(10px);
-  transition: all 0.3s ease;
 }
 
 .setting-menu.is-open {
@@ -648,6 +647,7 @@ body {
   transform: translateY(0);
   pointer-events: auto;
   z-index: 100;
+  transition: opacity 0.3s ease;
 }
 .menu-title {
   font-size: 13px;

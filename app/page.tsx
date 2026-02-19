@@ -784,7 +784,9 @@ export default function Home() {
             <div
               className={`setting-menu ${openMenu === 'backup' ? 'is-open' : ''}`}
             >
-              <div className="menu-title">데이터 관리</div>
+              <div className="menu-title">
+                <p>데이터 관리</p>
+              </div>
               <div className="menu-options">
                 <button onClick={exportPlaylists}>데이터 백업 (JSON)</button>
                 <label htmlFor="import-file">

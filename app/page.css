@@ -605,7 +605,8 @@ body {
 }
 
 .timer-btn,
-.autoplay-toggle {
+.autoplay-toggle,
+.backup-main-btn {
   width: 44px;
   height: 44px;
   border: none;
@@ -635,7 +636,6 @@ body {
   padding: 0 10px 10px 10px;
   box-shadow: 0 10px 30px rgba(0, 0, 0, 0.6);
   border: 1px solid #333;
-
   opacity: 0;
   visibility: hidden;
   transform: translateY(10px);
@@ -657,7 +657,8 @@ body {
   font-weight: bold;
 }
 
-.menu-options button {
+.menu-options button,
+.menu-button-style {
   width: 100%;
   padding: 10px;
   margin-bottom: 6px;
@@ -668,9 +669,12 @@ body {
   cursor: pointer;
   font-size: 13px;
   transition: 0.2s;
+  display: block;
+  box-sizing: border-box;
 }
 
-.menu-options button:hover {
+.menu-options button:hover,
+.menu-button-style:hover {
   background: #444;
   color: white;
 }

@@ -36,7 +36,7 @@ export default function Home() {
   const [isAutoPlay, setIsAutoPlay] = useState(false)
   const [draggedItemIndex, setDraggedItemIndex] = useState<number | null>(null)
   const [sleepTime, setSleepTime] = useState<number | null>(null)
-  const [openMenu, setOpenMenu] = useState<'autoplay' | 'timer' | null>(null)
+  const [openMenu, setOpenMenu] = useState<string | null>(null)
 
   // ─── [SECTION 3] 참조(Ref) 관리 ───
   const playerRef = useRef<any>(null)
@@ -46,6 +46,10 @@ export default function Home() {
     currentSong,
     isAutoPlay,
   })
+
+  const toggleMenu = (menuName: string) => {
+    setOpenMenu((prev) => (prev === menuName ? null : menuName))
+  }
 
   // ─── [SECTION 4] 일반 헬퍼 함수 및 로직 (Logic) ───
 
@@ -301,6 +305,54 @@ export default function Home() {
     const m = Math.floor(seconds / 60)
     const s = seconds % 60
     return `${m}:${s < 10 ? '0' : ''}${s}`
+  }
+
+  // 백업
+  const exportPlaylists = () => {
+    // 1. 현재 플레이리스트 데이터 가져오기
+    const data = localStorage.getItem('my-playlists')
+    if (!data) return alert('백업할 데이터가 없습니다.')
+
+    // 2. 파일 형식으로 변환 (Blob 생성)
+    const blob = new Blob([data], {type: 'application/json'})
+    const url = URL.createObjectURL(blob)
+
+    // 3. 가상 앵커 태그 생성 후 클릭 (다운로드 트리거)
+    const link = document.createElement('a')
+    link.href = url
+    link.download = `playlist_backup_${new Date().toISOString().slice(0, 10)}.json`
+    link.click()
+
+    // 4. 메모리 정리
+    URL.revokeObjectURL(url)
+  }
+
+  const importPlaylists = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+
+    const reader = new FileReader()
+    reader.onload = (event) => {
+      const result = event.target?.result
+
+      if (typeof result === 'string') {
+        try {
+          const importedData = JSON.parse(result)
+
+          // 데이터 형식 검증 (선택 사항이지만 권장)
+          if (Array.isArray(importedData)) {
+            // 1. 상태 업데이트
+            setPlaylists(importedData)
+            // 2. 로컬 스토리지 저장
+            localStorage.setItem('my-playlists', JSON.stringify(importedData))
+            alert('백업 복구가 완료되었습니다!')
+          }
+        } catch (err) {
+          alert('올바른 백업 파일이 아닙니다.')
+        }
+      }
+    }
+    reader.readAsText(file)
   }
 
   // ─── [SECTION 5] Side Effects (useEffect) ───
@@ -662,15 +714,12 @@ export default function Home() {
         </div>
       )}
 
-      {/* 아이콘 및 하단 바 로직 생략 없이 유지 */}
       <div className="icon-container">
         <div className="icon-menu-point">
           <div className="icon-wrapper" onClick={(e) => e.stopPropagation()}>
             <button
               className={`autoplay-toggle ${isAutoPlay ? 'on' : 'off'}`}
-              onClick={() =>
-                setOpenMenu(openMenu === 'autoplay' ? null : 'autoplay')
-              }
+              onClick={() => toggleMenu('autoplay')}
             >
               <span className="icon">🔁</span>
             </button>
@@ -697,7 +746,7 @@ export default function Home() {
           <div className="icon-wrapper" onClick={(e) => e.stopPropagation()}>
             <button
               className={`timer-btn ${sleepTime !== null ? 'active' : ''}`}
-              onClick={() => setOpenMenu(openMenu === 'timer' ? null : 'timer')}
+              onClick={() => toggleMenu('timer')}
             >
               <span className="icon">⌛</span>
             </button>
@@ -725,9 +774,36 @@ export default function Home() {
               )}
             </div>
           </div>
+          <div className="icon-wrapper" onClick={(e) => e.stopPropagation()}>
+            <button
+              className={`backup-main-btn ${openMenu === 'backup' ? 'active' : ''}`}
+              onClick={() => toggleMenu('backup')}
+            >
+              💾
+            </button>
+            <div
+              className={`setting-menu ${openMenu === 'backup' ? 'is-open' : ''}`}
+            >
+              <div className="menu-title">데이터 관리</div>
+              <div className="menu-options">
+                <button onClick={exportPlaylists}>데이터 백업 (JSON)</button>
+                <label htmlFor="import-file">
+                  <div className="menu-button-style">
+                    데이터 복구 (불러오기)
+                  </div>
+                </label>
+                <input
+                  id="import-file"
+                  type="file"
+                  accept=".json"
+                  onChange={importPlaylists}
+                  style={{display: 'none'}}
+                />
+              </div>
+            </div>
+          </div>
         </div>
       </div>
-
       <div className="music-var">
         <div className="music-var-title">
           {playingPlaylistName ? `[${playingPlaylistName}] ` : ''}

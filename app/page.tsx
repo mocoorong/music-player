@@ -85,7 +85,7 @@ export default function Home() {
         events: {
           onStateChange: (event: any) => {
             if (event.data === 0) {
-              handleNextSong()
+              handleSkip(1)
             }
           },
         },
@@ -162,73 +162,42 @@ export default function Home() {
     playerRef.current.loadVideoById(videoId)
   }
 
-  const handleNextSong = async () => {
+  const handleSkip = (direction: number) => {
     const {playlists, playingPlaylistId, currentSong, isAutoPlay} =
       stateRef.current
     const list = playlists.find((p) => p.id === playingPlaylistId)
-    if (!list || list.songs.length === 0) return
-    const currentIndex = list.songs.findIndex((s) => s.id === currentSong?.id)
 
-    if (currentIndex !== -1 && currentIndex < list.songs.length - 1) {
-      playSpecificSong(list.songs[currentIndex + 1])
-    } else {
-      if (isAutoPlay) {
-        const currentListIndex = playlists.findIndex((p) => p.id === list.id)
-        if (
-          currentListIndex !== -1 &&
-          currentListIndex < playlists.length - 1
-        ) {
-          const nextPlaylist = playlists[currentListIndex + 1]
-          if (nextPlaylist.songs.length > 0) {
-            handlePlaySong(nextPlaylist.songs[0], nextPlaylist)
-            setActiveIndex(currentListIndex + 1)
-          } else {
-            playSpecificSong(list.songs[0])
-          }
-        } else {
-          const firstPlaylist = playlists[0]
-          if (firstPlaylist && firstPlaylist.songs.length > 0) {
-            handlePlaySong(firstPlaylist.songs[0], firstPlaylist)
-            setActiveIndex(0)
-          }
-        }
-      } else {
-        playSpecificSong(list.songs[0])
-      }
+    if (!list || list.songs.length === 0) return
+
+    const currentIndex = list.songs.findIndex((s) => s.id === currentSong?.id)
+    const nextIndex = currentIndex + direction
+
+    // 1. 현재 리스트 내에서 이동 가능한 경우
+    if (nextIndex >= 0 && nextIndex < list.songs.length) {
+      playSpecificSong(list.songs[nextIndex])
     }
-  }
-
-  const handlePrevSong = () => {
-    const {playlists, playingPlaylistId, currentSong, isAutoPlay} =
-      stateRef.current
-    const list = playlists.find((p) => p.id === playingPlaylistId)
-    if (!list || list.songs.length === 0) return
-    const currentIndex = list.songs.findIndex((s) => s.id === currentSong?.id)
-
-    if (currentIndex > 0) {
-      playSpecificSong(list.songs[currentIndex - 1])
-    } else {
+    // 2. 리스트 범위를 벗어난 경우 (처음이나 끝)
+    else {
       if (isAutoPlay) {
+        // 모든 리스트 재생 모드: 다음/이전 플레이리스트로 넘어감
         const currentListIndex = playlists.findIndex((p) => p.id === list.id)
-        if (currentListIndex > 0) {
-          const prevPlaylist = playlists[currentListIndex - 1]
-          if (prevPlaylist.songs.length > 0) {
-            const lastSongOfPrevList =
-              prevPlaylist.songs[prevPlaylist.songs.length - 1]
-            handlePlaySong(lastSongOfPrevList, prevPlaylist)
-            setActiveIndex(currentListIndex - 1)
-          }
-        } else {
-          const lastPlaylist = playlists[playlists.length - 1]
-          if (lastPlaylist.songs.length > 0) {
-            const lastSong = lastPlaylist.songs[lastPlaylist.songs.length - 1]
-            handlePlaySong(lastSong, lastPlaylist)
-            setActiveIndex(playlists.length - 1)
-          }
+        // 끝에서 다음을 누르면 첫 리스트로, 처음에서 이전을 누르면 마지막 리스트로 (순환)
+        const nextListIndex =
+          (currentListIndex + direction + playlists.length) % playlists.length
+        const nextPlaylist = playlists[nextListIndex]
+
+        if (nextPlaylist.songs.length > 0) {
+          const targetSong =
+            direction > 0
+              ? nextPlaylist.songs[0]
+              : nextPlaylist.songs[nextPlaylist.songs.length - 1]
+          handlePlaySong(targetSong, nextPlaylist)
+          setActiveIndex(nextListIndex)
         }
       } else {
-        const lastIndex = list.songs.length - 1
-        playSpecificSong(list.songs[lastIndex])
+        // 단일 리스트 반복 모드: 현재 리스트의 반대편 끝으로 이동
+        const recoveryIndex = direction > 0 ? 0 : list.songs.length - 1
+        playSpecificSong(list.songs[recoveryIndex])
       }
     }
   }
@@ -381,7 +350,7 @@ export default function Home() {
       )
     )
     if (playingPlaylistId === currentActive.id && isDeletingCurrent) {
-      if (updatedSongs.length > 0) handleNextSong()
+      if (updatedSongs.length > 0) handleSkip(1)
       else {
         setPlay(false)
         setCurrentSong(null)
@@ -793,7 +762,7 @@ export default function Home() {
           <div className="mini-thumbnail-placeholder" />
         )}
         <div className="control-btns">
-          <button onClick={handlePrevSong}>
+          <button onClick={() => handleSkip(-1)}>
             <img src="/img/main-prevBtn.png" alt="" />
           </button>
           <button onClick={() => setPlay(!play)}>
@@ -802,7 +771,7 @@ export default function Home() {
               alt=""
             />
           </button>
-          <button onClick={handleNextSong}>
+          <button onClick={() => handleSkip(1)}>
             <img src="/img/main-nextBtn.png" alt="" />
           </button>
         </div>

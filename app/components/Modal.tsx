@@ -7,13 +7,13 @@ interface ModalProps {
   isOpen: boolean
   onClose: () => void
   playlist: Playlist
-  currentSong: Song | null
-  playingPlaylistName: string
-  playingPlaylistId: string
   updatePlaylist: (
     payload: Partial<Playlist> | ((p: Playlist) => Playlist),
     targetId?: string
   ) => void
+  currentSong: Song | null
+  playingPlaylistName: string
+  playingPlaylistId: string
   handlePlaySong: (song: Song, playlist: Playlist) => void
   handleSkip: (direction: number) => void
   setCurrentSong: (song: Song | null) => void

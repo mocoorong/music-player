@@ -247,6 +247,16 @@ export default function Home() {
   const left = activeIndex > 0 ? playlists[activeIndex - 1] : null
   const right =
     activeIndex < playlists.length - 1 ? playlists[activeIndex + 1] : null
+  const playbackControls = {
+    currentSong,
+    playingPlaylistName,
+    playingPlaylistId,
+    handlePlaySong,
+    handleSkip,
+    setCurrentSong,
+    setPlay,
+    playerRef,
+  }
 
   return (
     <div className="main-bg">
@@ -342,19 +352,11 @@ export default function Home() {
           isOpen={modal}
           onClose={() => setModal(false)}
           playlist={center}
-          currentSong={currentSong}
-          playingPlaylistName={playingPlaylistName}
-          playingPlaylistId={playingPlaylistId}
           updatePlaylist={updatePlaylist}
-          handlePlaySong={handlePlaySong}
-          handleSkip={handleSkip}
-          setCurrentSong={setCurrentSong}
-          setPlay={setPlay}
-          playerRef={playerRef}
+          {...playbackControls}
         />
       )}
 
-      {/* 아이콘 및 하단 바 UI (기존과 동일) */}
       <div className="icon-container">
         <div className="icon-menu-point">
           <div className="icon-wrapper" onClick={(e) => e.stopPropagation()}>

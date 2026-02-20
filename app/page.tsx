@@ -1,23 +1,18 @@
 'use client'
 
 import {useState, useRef, useEffect} from 'react'
+import PlaylistModal from './components/Modal'
 import './page.css'
 
-// ─── [SECTION 1] 타입 정의 ───
 export type Song = {
   id: string
   title: string
   youtubeUrl: string
   thumbnail: string
 }
-export type Playlist = {
-  id: string
-  title: string
-  songs: Song[]
-}
+export type Playlist = {id: string; title: string; songs: Song[]}
 
 export default function Home() {
-  // ─── [SECTION 2] 상태(State) 선언 ───
   const [play, setPlay] = useState(false)
   const [currentSong, setCurrentSong] = useState<Song | null>(null)
   const [playingPlaylistName, setPlayingPlaylistName] = useState<string>('')
@@ -25,20 +20,11 @@ export default function Home() {
   const [playlists, setPlaylists] = useState<Playlist[]>([])
   const [activeIndex, setActiveIndex] = useState<number>(-1)
   const [modal, setModal] = useState(false)
-  const [tempTitle, setTempTitle] = useState('')
-  const [youtubeUrl, setYoutubeUrl] = useState('')
-  const [isEditingTitle, setIsEditingTitle] = useState(false)
   const [isMounted, setIsMounted] = useState(false)
-  const [searchQuery, setSearchQuery] = useState('')
-  const [searchResults, setSearchResults] = useState<any[]>([])
-  const [isSearching, setIsSearching] = useState(false)
-  const [activeTab, setActiveTab] = useState<'search' | 'url'>('search')
   const [isAutoPlay, setIsAutoPlay] = useState(false)
-  const [draggedItemIndex, setDraggedItemIndex] = useState<number | null>(null)
   const [sleepTime, setSleepTime] = useState<number | null>(null)
   const [openMenu, setOpenMenu] = useState<string | null>(null)
 
-  // ─── [SECTION 3] 참조(Ref) 관리 ───
   const playerRef = useRef<any>(null)
   const stateRef = useRef({
     playlists,
@@ -47,13 +33,13 @@ export default function Home() {
     isAutoPlay,
   })
 
-  const toggleMenu = (menuName: string) => {
+  useEffect(() => {
+    stateRef.current = {playlists, playingPlaylistId, currentSong, isAutoPlay}
+  }, [playlists, playingPlaylistId, currentSong, isAutoPlay])
+
+  const toggleMenu = (menuName: string) =>
     setOpenMenu((prev) => (prev === menuName ? null : menuName))
-  }
 
-  // ─── [SECTION 4] 일반 헬퍼 함수 및 로직 (Logic) ───
-
-  // URL에서 VideoID 추출
   const extractVideoId = (url: string) => {
     const regExp =
       /^.*((youtu.be\/)|(v\/)|(\/u\/\w\/)|(embed\/)|(watch\?))\??v?=?([^#&?]*).*/
@@ -61,7 +47,6 @@ export default function Home() {
     return match && match[7].length === 11 ? match[7] : ''
   }
 
-  // 플레이리스트 업데이트 헬퍼
   const updatePlaylist = (
     payload: Partial<Playlist> | ((p: Playlist) => Playlist),
     targetId?: string
@@ -71,16 +56,13 @@ export default function Home() {
     setPlaylists((prev) =>
       prev.map((p) => {
         if (p.id !== id) return p
-        return typeof payload === 'function' ? payload(p) : {...p, ...payload}
+        const updated =
+          typeof payload === 'function' ? payload(p) : {...p, ...payload}
+        if (playingPlaylistId === id && (payload as any).title)
+          setPlayingPlaylistName((payload as any).title)
+        return updated
       })
     )
-  }
-
-  const addSongToActive = (newSong: Song) => {
-    updatePlaylist((prev) => ({
-      ...prev,
-      songs: [...prev.songs, newSong],
-    }))
   }
 
   const playSpecificSong = (song: Song) => {
@@ -107,38 +89,36 @@ export default function Home() {
       stateRef.current
     const list = playlists.find((p) => p.id === playingPlaylistId)
     if (!list || list.songs.length === 0) return
-
     const currentIndex = list.songs.findIndex((s) => s.id === currentSong?.id)
     const nextIndex = currentIndex + direction
-
     if (nextIndex >= 0 && nextIndex < list.songs.length) {
       playSpecificSong(list.songs[nextIndex])
     } else {
       if (isAutoPlay) {
-        const currentListIndex = playlists.findIndex((p) => p.id === list.id)
-        const nextListIndex =
-          (currentListIndex + direction + playlists.length) % playlists.length
-        const nextPlaylist = playlists[nextListIndex]
-        if (nextPlaylist.songs.length > 0) {
-          const targetSong =
+        const currentListIdx = playlists.findIndex((p) => p.id === list.id)
+        const nextListIdx =
+          (currentListIdx + direction + playlists.length) % playlists.length
+        const nextList = playlists[nextListIdx]
+        if (nextList.songs.length > 0) {
+          handlePlaySong(
             direction > 0
-              ? nextPlaylist.songs[0]
-              : nextPlaylist.songs[nextPlaylist.songs.length - 1]
-          handlePlaySong(targetSong, nextPlaylist)
-          setActiveIndex(nextListIndex)
+              ? nextList.songs[0]
+              : nextList.songs[nextList.songs.length - 1],
+            nextList
+          )
+          setActiveIndex(nextListIdx)
         }
       } else {
-        const recoveryIndex = direction > 0 ? 0 : list.songs.length - 1
-        playSpecificSong(list.songs[recoveryIndex])
+        playSpecificSong(list.songs[direction > 0 ? 0 : list.songs.length - 1])
       }
     }
   }
 
-  // 플레이리스트 추가/삭제/수정
   const addPlaylist = () => {
-    const count = playlists.length
     const newTitle =
-      count === 0 ? '새 플레이리스트' : `새 플레이리스트 (${count})`
+      playlists.length === 0
+        ? '새 플레이리스트'
+        : `새 플레이리스트 (${playlists.length})`
     const newPlaylist: Playlist = {
       id: crypto.randomUUID(),
       title: newTitle,
@@ -148,7 +128,6 @@ export default function Home() {
     setPlaylists(updated)
     setActiveIndex(updated.length - 1)
     setModal(true)
-    setTempTitle(newTitle)
   }
 
   const deletePlaylist = (id: string) => {
@@ -159,101 +138,17 @@ export default function Home() {
       setPlay(false)
       setPlayingPlaylistName('')
       setPlayingPlaylistId('')
-      if (playerRef.current) playerRef.current.stopVideo()
+      playerRef.current?.stopVideo()
     }
     setPlaylists(next)
     setActiveIndex(next.length > 0 ? 0 : -1)
-    setModal(false)
   }
 
-  const handleTitleUpdate = () => {
-    const newTitle = tempTitle.trim() || '제목 없음'
-    updatePlaylist({title: newTitle})
-    if (playingPlaylistId === playlists[activeIndex]?.id)
-      setPlayingPlaylistName(newTitle)
-    setIsEditingTitle(false)
-  }
-
-  // 검색 및 곡 추가
-  const handleSearch = async () => {
-    if (!searchQuery.trim()) return
-    setIsSearching(true)
-    const API_KEY = process.env.NEXT_PUBLIC_YOUTUBE_API_KEY
-    const url = `https://www.googleapis.com/youtube/v3/search?part=snippet&maxResults=5&q=${encodeURIComponent(searchQuery)}&type=video&key=${API_KEY}`
-    try {
-      const res = await fetch(url)
-      const data = await res.json()
-      if (data.items) setSearchResults(data.items)
-    } catch (error) {
-      console.error('검색 중 오류 발생:', error)
-    } finally {
-      setIsSearching(false)
-    }
-  }
-
-  const addNewSongByUrl = async (url: string) => {
-    const currentActive = playlists[activeIndex]
-    if (!url.trim() || !currentActive) return
-    const videoId = extractVideoId(url)
-    if (!videoId) return alert('유효한 유튜브 링크가 아닙니다.')
-    try {
-      const res = await fetch(
-        `https://noembed.com/embed?url=https://www.youtube.com/watch?v=${videoId}`
-      )
-      const data = await res.json()
-      const newSong: Song = {
-        id: crypto.randomUUID(),
-        title: data.title || '제목 없음',
-        thumbnail: `https://img.youtube.com/vi/${videoId}/hqdefault.jpg`,
-        youtubeUrl: url,
-      }
-      addSongToActive(newSong)
-      return true
-    } catch {
-      alert('정보를 가져오지 못했습니다.')
-      return false
-    }
-  }
-
-  const addSong = async () => {
-    const success = await addNewSongByUrl(youtubeUrl)
-    if (success) setYoutubeUrl('')
-  }
-
-  const addSongFromSearch = (video: any) => {
-    const newSong: Song = {
-      id: crypto.randomUUID(),
-      title: video.snippet.title,
-      thumbnail: video.snippet.thumbnails.high.url,
-      youtubeUrl: `https://www.youtube.com/watch?v=${video.id.videoId}`,
-    }
-    addSongToActive(newSong)
-    setSearchResults([])
-    setSearchQuery('')
-  }
-
-  const deleteSong = (songId: string) => {
-    updatePlaylist((prev) => ({
-      ...prev,
-      songs: prev.songs.filter((s) => s.id !== songId),
-    }))
-    if (currentSong?.id === songId) {
-      const list = playlists.find((p) => p.id === playingPlaylistId)
-      if (list && list.songs.length > 1) handleSkip(1)
-      else {
-        setPlay(false)
-        setCurrentSong(null)
-        playerRef.current?.stopVideo()
-      }
-    }
-  }
-
-  // UI 편의 및 드래그 앤 드롭
   const scrollToCurrentSong = () => {
     if (!currentSong || !playingPlaylistId) return
-    const playlistIndex = playlists.findIndex((p) => p.id === playingPlaylistId)
-    if (playlistIndex === -1) return
-    setActiveIndex(playlistIndex)
+    const idx = playlists.findIndex((p) => p.id === playingPlaylistId)
+    if (idx === -1) return
+    setActiveIndex(idx)
     setModal(true)
     setTimeout(() => {
       const el = document.getElementById(`song-${currentSong.id}`)
@@ -262,202 +157,97 @@ export default function Home() {
         el.classList.add('highlight-song')
         setTimeout(() => el.classList.remove('highlight-song'), 2000)
       }
-    }, 100)
+    }, 150)
   }
 
-  const onDragStart = (e: React.DragEvent, index: number) => {
-    setDraggedItemIndex(index)
-    e.dataTransfer.effectAllowed = 'move'
-    const dragTarget = (e.target as HTMLElement).closest('.song-item')
-    if (dragTarget) e.dataTransfer.setDragImage(dragTarget, 20, 20)
-  }
-
-  const onDragOver = (e: React.DragEvent) => {
-    e.preventDefault()
-    e.dataTransfer.dropEffect = 'move'
-  }
-
-  const onDrop = (e: React.DragEvent, targetIndex: number) => {
-    e.preventDefault()
-    if (draggedItemIndex === null || draggedItemIndex === targetIndex) {
-      setDraggedItemIndex(null)
-      return
-    }
-    const currentActive = playlists[activeIndex]
-    if (!currentActive) return
-    const newSongs = [...currentActive.songs]
-    const draggedItem = newSongs[draggedItemIndex]
-    newSongs.splice(draggedItemIndex, 1)
-    newSongs.splice(targetIndex, 0, draggedItem)
-    updatePlaylist({songs: newSongs})
-    setDraggedItemIndex(null)
-  }
-
-  const handleExternalDrop = async (e: React.DragEvent) => {
-    e.preventDefault()
-    e.stopPropagation()
-    const url = e.dataTransfer.getData('text')
-    if (url.includes('youtube.com') || url.includes('youtu.be'))
-      await addNewSongByUrl(url)
-  }
-
-  const formatTime = (seconds: number) => {
-    const m = Math.floor(seconds / 60)
-    const s = seconds % 60
-    return `${m}:${s < 10 ? '0' : ''}${s}`
-  }
-
-  // 백업
   const exportPlaylists = () => {
-    // 1. 현재 플레이리스트 데이터 가져오기
     const data = localStorage.getItem('my-playlists')
     if (!data) return alert('백업할 데이터가 없습니다.')
-
-    // 2. 파일 형식으로 변환 (Blob 생성)
     const blob = new Blob([data], {type: 'application/json'})
     const url = URL.createObjectURL(blob)
-
-    // 3. 가상 앵커 태그 생성 후 클릭 (다운로드 트리거)
     const link = document.createElement('a')
     link.href = url
-    link.download = `playlist_backup_${new Date().toISOString().slice(0, 10)}.json`
+    link.download = `backup_${new Date().toISOString().slice(0, 10)}.json`
     link.click()
-
-    // 4. 메모리 정리
     URL.revokeObjectURL(url)
   }
 
   const importPlaylists = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
     if (!file) return
-
     const reader = new FileReader()
     reader.onload = (event) => {
-      const result = event.target?.result
-
-      if (typeof result === 'string') {
-        try {
-          const importedData = JSON.parse(result)
-
-          // 데이터 형식 검증 (선택 사항이지만 권장)
-          if (Array.isArray(importedData)) {
-            // 1. 상태 업데이트
-            setPlaylists(importedData)
-            // 2. 로컬 스토리지 저장
-            localStorage.setItem('my-playlists', JSON.stringify(importedData))
-            alert('백업 복구가 완료되었습니다!')
-          }
-        } catch (err) {
-          alert('올바른 백업 파일이 아닙니다.')
+      try {
+        const imported = JSON.parse(event.target?.result as string)
+        if (Array.isArray(imported)) {
+          setPlaylists(imported)
+          localStorage.setItem('my-playlists', JSON.stringify(imported))
+          alert('복구 완료!')
         }
+      } catch {
+        alert('올바른 파일이 아닙니다.')
       }
     }
     reader.readAsText(file)
   }
 
-  // ─── [SECTION 5] Side Effects (useEffect) ───
-
-  // 1. 초기 마운트 시 데이터 로드 및 API 주입
   useEffect(() => {
-    const savedPlaylists = localStorage.getItem('my-playlists')
-    if (savedPlaylists) {
+    const saved = localStorage.getItem('my-playlists')
+    if (saved) {
       try {
-        const parsed = JSON.parse(savedPlaylists)
+        const parsed = JSON.parse(saved)
         setPlaylists(parsed)
         if (parsed.length > 0) setActiveIndex(0)
-      } catch (e) {
-        console.error(e)
-      }
+      } catch {}
     }
     setIsMounted(true)
-
     if (!(window as any).YT) {
       const tag = document.createElement('script')
       tag.src = 'https://www.youtube.com/iframe_api'
-      const firstScriptTag = document.getElementsByTagName('script')[0]
-      firstScriptTag.parentNode?.insertBefore(tag, firstScriptTag)
+      document
+        .getElementsByTagName('script')[0]
+        .parentNode?.insertBefore(
+          tag,
+          document.getElementsByTagName('script')[0]
+        )
     }
-
     ;(window as any).onYouTubeIframeAPIReady = () => {
       playerRef.current = new (window as any).YT.Player('yt-player', {
         height: '100%',
         width: '100%',
         videoId: '',
         playerVars: {autoplay: 1, rel: 0, controls: 1},
-        events: {
-          onStateChange: (event: any) => {
-            if (event.data === 0) handleSkip(1)
-          },
-        },
+        events: {onStateChange: (e: any) => e.data === 0 && handleSkip(1)},
       })
     }
   }, [])
 
-  // 2. Ref 동기화 (Skip 로직 등 최신 상태 보장용)
   useEffect(() => {
-    stateRef.current = {playlists, playingPlaylistId, currentSong, isAutoPlay}
-  }, [playlists, playingPlaylistId, currentSong, isAutoPlay])
-
-  // 3. 데이터 저장 (LocalStorage)
-  useEffect(() => {
-    if (isMounted) {
+    if (isMounted)
       localStorage.setItem('my-playlists', JSON.stringify(playlists))
-    }
   }, [playlists, isMounted])
-
-  // 4. 전역 키 이벤트 (ESC로 검색창 닫기 등)
   useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') setSearchResults([])
-    }
-    window.addEventListener('keydown', handleKeyDown)
-    return () => window.removeEventListener('keydown', handleKeyDown)
-  }, [])
-
-  // 5. 수면 타이머 로직
-  useEffect(() => {
-    if (sleepTime === null) return
-    if (sleepTime <= 0) {
+    if (sleepTime === 0) {
       setPlay(false)
-      if (playerRef.current) playerRef.current.pauseVideo()
+      playerRef.current?.pauseVideo()
       setSleepTime(null)
-      setTimeout(() => alert('수면 타이머가 종료되어 음악을 정지합니다.'), 100)
-      return
+      setTimeout(() => alert('수면 타이머 종료'), 100)
     }
-    const timer = setInterval(() => {
-      setSleepTime((prev) => (prev !== null ? prev - 1 : null))
-    }, 1000)
-    return () => clearInterval(timer)
+    if (sleepTime !== null && sleepTime > 0) {
+      const t = setInterval(() => setSleepTime((prev) => prev! - 1), 1000)
+      return () => clearInterval(t)
+    }
   }, [sleepTime])
-
-  // 6. 모달 닫힐 때 검색어 초기화
   useEffect(() => {
-    if (!modal) {
-      setSearchResults([])
-      setSearchQuery('')
-    }
-  }, [modal])
-
-  // 7. 외부 클릭 시 메뉴 닫기
-  useEffect(() => {
-    const closeAll = () => setOpenMenu(null)
-    if (openMenu) window.addEventListener('click', closeAll)
-    return () => window.removeEventListener('click', closeAll)
-  }, [openMenu])
-
-  // 8. 재생/일시정지 상태 연동
-  useEffect(() => {
-    if (playerRef.current && playerRef.current.getPlayerState) {
-      if (play) playerRef.current.playVideo()
-      else playerRef.current.pauseVideo()
-    }
+    if (playerRef.current?.getPlayerState)
+      play ? playerRef.current.playVideo() : playerRef.current.pauseVideo()
   }, [play])
 
-  // ─── [SECTION 6] 렌더링 변수 및 JSX ───
   const center = activeIndex >= 0 ? playlists[activeIndex] : null
   const left = activeIndex > 0 ? playlists[activeIndex - 1] : null
-  const rightAlbum =
+  const right =
     activeIndex < playlists.length - 1 ? playlists[activeIndex + 1] : null
+
   return (
     <div className="main-bg">
       <div
@@ -486,7 +276,7 @@ export default function Home() {
             className="playlist-album left"
             onClick={() => setActiveIndex(activeIndex - 1)}
           >
-            {left.songs[0]?.thumbnail ? (
+            {left.songs[0] ? (
               <img src={left.songs[0].thumbnail} alt="" />
             ) : (
               <div className="no-thumbnail">곡 없음</div>
@@ -496,21 +286,16 @@ export default function Home() {
         {center && (
           <div className="playlist-album center" onClick={() => setModal(true)}>
             <div className="playlist-album-title">{center.title}</div>
-            {currentSong && playingPlaylistId === center.id ? (
-              <img
-                src={currentSong.thumbnail}
-                alt=""
-                className="album-img playing"
-              />
-            ) : center.songs[0]?.thumbnail ? (
-              <img
-                src={center.songs[0].thumbnail}
-                alt=""
-                className="album-img"
-              />
-            ) : (
-              <div className="no-thumbnail">곡 없음</div>
-            )}
+            <img
+              src={
+                currentSong && playingPlaylistId === center.id
+                  ? currentSong.thumbnail
+                  : center.songs[0]?.thumbnail || ''
+              }
+              className={`album-img ${currentSong && playingPlaylistId === center.id ? 'playing' : ''}`}
+              alt=""
+            />
+            {!center.songs[0] && <div className="no-thumbnail">곡 없음</div>}
             <button
               className="album-play-overlay-btn"
               onClick={(e) => {
@@ -531,13 +316,13 @@ export default function Home() {
             </button>
           </div>
         )}
-        {rightAlbum ? (
+        {right ? (
           <div
             className="playlist-album right"
             onClick={() => setActiveIndex(activeIndex + 1)}
           >
-            {rightAlbum.songs[0]?.thumbnail ? (
-              <img src={rightAlbum.songs[0].thumbnail} alt="" />
+            {right.songs[0] ? (
+              <img src={right.songs[0].thumbnail} alt="" />
             ) : (
               <div className="no-thumbnail">곡 없음</div>
             )}
@@ -552,168 +337,24 @@ export default function Home() {
         )}
       </div>
 
-      {modal && center && (
-        <div className="modal-bg" onClick={() => setModal(false)}>
-          <div className="modal-inner" onClick={(e) => e.stopPropagation()}>
-            <div className="modal-inner-left">
-              <div className="playlist-title">
-                {playingPlaylistName ? `${playingPlaylistName} 재생 중...` : ''}
-              </div>
-            </div>
-            <div className="modal-inner-right">
-              <div className="modal-inner-title">
-                <div className="title-edit-zone">
-                  {isEditingTitle ? (
-                    <input
-                      autoFocus
-                      className="title-inline-input"
-                      value={tempTitle}
-                      onChange={(e) => setTempTitle(e.target.value)}
-                      onBlur={handleTitleUpdate}
-                      onKeyDown={(e) =>
-                        e.key === 'Enter' && handleTitleUpdate()
-                      }
-                    />
-                  ) : (
-                    <p
-                      className="modal-title-display"
-                      onClick={() => setIsEditingTitle(true)}
-                    >
-                      {center.title} ✎
-                    </p>
-                  )}
-                  <div className="search-box-container">
-                    <select
-                      className="search-dropdown"
-                      value={activeTab}
-                      onChange={(e) => {
-                        setActiveTab(e.target.value as 'search' | 'url')
-                        setSearchResults([])
-                      }}
-                    >
-                      <option value="search">유튜브 검색으로 추가</option>
-                      <option value="url">동영상 URL로 추가</option>
-                    </select>
-                    <div className="input-row">
-                      {activeTab === 'search' ? (
-                        <>
-                          <input
-                            className="search-input"
-                            placeholder="곡 제목 검색"
-                            value={searchQuery}
-                            onChange={(e) => setSearchQuery(e.target.value)}
-                            onKeyDown={(e) =>
-                              e.key === 'Enter' && handleSearch()
-                            }
-                          />
-                          <button className="search-btn" onClick={handleSearch}>
-                            검색
-                          </button>
-                        </>
-                      ) : (
-                        <>
-                          <input
-                            className="search-input"
-                            placeholder="유튜브 링크 붙여넣기"
-                            value={youtubeUrl}
-                            onChange={(e) => setYoutubeUrl(e.target.value)}
-                            onKeyDown={(e) => e.key === 'Enter' && addSong()}
-                          />
-                          <button className="search-btn" onClick={addSong}>
-                            추가
-                          </button>
-                        </>
-                      )}
-                    </div>
-                    {activeTab === 'search' && searchResults.length > 0 && (
-                      <div className="search-results-dropdown">
-                        {searchResults.map((video) => (
-                          <div
-                            key={video.id.videoId}
-                            className="search-result-item"
-                            onClick={() => addSongFromSearch(video)}
-                          >
-                            <img
-                              src={video.snippet.thumbnails.default.url}
-                              alt=""
-                            />
-                            <div className="result-info">
-                              <p className="result-title">
-                                {video.snippet.title}
-                              </p>
-                              <p className="result-channel">
-                                {video.snippet.channelTitle}
-                              </p>
-                            </div>
-                          </div>
-                        ))}
-                        <button
-                          className="search-close-btn"
-                          onClick={() => setSearchResults([])}
-                        >
-                          닫기
-                        </button>
-                      </div>
-                    )}
-                  </div>
-                </div>
-              </div>
-              <div
-                className="modal-inner-list"
-                onDragOver={onDragOver}
-                onDrop={handleExternalDrop}
-              >
-                {center.songs.length === 0 && (
-                  <div className="no-songs-msg">
-                    곡을 추가하거나 링크를 드래그해 오세요.
-                  </div>
-                )}
-                {center.songs
-                  .filter((song) =>
-                    activeTab === 'search'
-                      ? song.title
-                          .toLowerCase()
-                          .includes(searchQuery.toLowerCase())
-                      : true
-                  )
-                  .map((song, i) => (
-                    <div
-                      key={song.id}
-                      id={`song-${song.id}`}
-                      className={`song-item ${currentSong?.id === song.id ? 'active-playing' : ''}`}
-                      onClick={() => handlePlaySong(song, center)}
-                      onDragOver={onDragOver}
-                      onDrop={(e) => onDrop(e, i)}
-                    >
-                      <div
-                        className="drag-handle"
-                        draggable
-                        onDragStart={(e) => onDragStart(e, i)}
-                      >
-                        ☰
-                      </div>
-                      <div className="song-info">
-                        <img
-                          src={song.thumbnail}
-                          className="song-thumbnail"
-                          alt=""
-                        />
-                        <span className="song-title-text">{song.title}</span>
-                      </div>
-                      <div
-                        className="song-controls"
-                        onClick={(e) => e.stopPropagation()}
-                      >
-                        <button onClick={() => deleteSong(song.id)}>X</button>
-                      </div>
-                    </div>
-                  ))}
-              </div>
-            </div>
-          </div>
-        </div>
+      {center && (
+        <PlaylistModal
+          isOpen={modal}
+          onClose={() => setModal(false)}
+          playlist={center}
+          currentSong={currentSong}
+          playingPlaylistName={playingPlaylistName}
+          playingPlaylistId={playingPlaylistId}
+          updatePlaylist={updatePlaylist}
+          handlePlaySong={handlePlaySong}
+          handleSkip={handleSkip}
+          setCurrentSong={setCurrentSong}
+          setPlay={setPlay}
+          playerRef={playerRef}
+        />
       )}
 
+      {/* 아이콘 및 하단 바 UI (기존과 동일) */}
       <div className="icon-container">
         <div className="icon-menu-point">
           <div className="icon-wrapper" onClick={(e) => e.stopPropagation()}>
@@ -721,7 +362,7 @@ export default function Home() {
               className={`autoplay-toggle ${isAutoPlay ? 'on' : 'off'}`}
               onClick={() => toggleMenu('autoplay')}
             >
-              <span className="icon">🔁</span>
+              🔁
             </button>
             <div
               className={`setting-menu ${openMenu === 'autoplay' ? 'is-open' : ''}`}
@@ -748,7 +389,7 @@ export default function Home() {
               className={`timer-btn ${sleepTime !== null ? 'active' : ''}`}
               onClick={() => toggleMenu('timer')}
             >
-              <span className="icon">⌛</span>
+              ⌛
             </button>
             <div
               className={`setting-menu ${openMenu === 'timer' ? 'is-open' : ''}`}
@@ -763,7 +404,7 @@ export default function Home() {
                 </div>
               ) : (
                 <div className="menu-active">
-                  <div className="remaining-time">{formatTime(sleepTime)}</div>
+                  <div className="remaining-time">{`${Math.floor(sleepTime / 60)}:${String(sleepTime % 60).padStart(2, '0')}`}</div>
                   <button
                     className="cancel-btn"
                     onClick={() => setSleepTime(null)}
@@ -776,7 +417,7 @@ export default function Home() {
           </div>
           <div className="icon-wrapper" onClick={(e) => e.stopPropagation()}>
             <button
-              className={`backup-main-btn ${openMenu === 'backup' ? 'active' : ''}`}
+              className="backup-main-btn"
               onClick={() => toggleMenu('backup')}
             >
               💾
@@ -790,9 +431,7 @@ export default function Home() {
               <div className="menu-options">
                 <button onClick={exportPlaylists}>데이터 백업 (JSON)</button>
                 <label htmlFor="import-file">
-                  <div className="menu-button-style">
-                    데이터 복구 (불러오기)
-                  </div>
+                  <div className="menu-button-style">데이터 복구</div>
                 </label>
                 <input
                   id="import-file"
@@ -806,6 +445,7 @@ export default function Home() {
           </div>
         </div>
       </div>
+
       <div className="music-var">
         <div className="music-var-title">
           {playingPlaylistName ? `[${playingPlaylistName}] ` : ''}
@@ -814,7 +454,6 @@ export default function Home() {
         {currentSong ? (
           <img
             src={currentSong.thumbnail}
-            alt=""
             className="mini-thumbnail"
             onClick={scrollToCurrentSong}
           />

@@ -299,7 +299,8 @@ body {
   height: 55%;
   background: black;
   border-radius: 10px;
-
+  min-height: 450px;
+  max-height: 90vh;
   display: flex;
 }
 
@@ -504,7 +505,7 @@ body {
 
 .search-results-dropdown {
   position: absolute;
-  top: 70px;
+  top: 55px;
   right: 1.6%;
   width: 52.4%;
   background: #222;
@@ -590,7 +591,9 @@ body {
   cursor: pointer;
   white-space: nowrap;
 }
-
+.search-btn:focus {
+  outline: none;
+}
 .icon-container {
   position: absolute;
   bottom: 3%;

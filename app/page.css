@@ -415,6 +415,7 @@ body {
   gap: 3%;
   width: 100%;
   min-width: 0;
+  cursor: default;
 }
 .song-item.dragging {
   opacity: 0.4;

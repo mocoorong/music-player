@@ -1,0 +1,55 @@
+import {Song} from '../page'
+
+interface MusicVarProps {
+  playbackControls: {
+    currentSong: Song | null
+    playingPlaylistName: string
+    playingPlaylistId: string
+    handlePlaySong: (song: Song, playlist: any) => void
+    handleSkip: (direction: number) => void
+    setCurrentSong: (song: Song | null) => void
+    setPlay: (play: boolean) => void
+    play: boolean // 이제 부모에서 넘겨주므로 인식될 것입니다.
+    playerRef: any
+  }
+  scrollToCurrentSong: () => void
+}
+export default function MusicVar({
+  playbackControls,
+  scrollToCurrentSong,
+}: MusicVarProps) {
+  const {currentSong, playingPlaylistName, play, setPlay, handleSkip} =
+    playbackControls
+
+  return (
+    <div className="music-var">
+      <div className="music-var-title">
+        {playingPlaylistName ? `[${playingPlaylistName}] ` : ''}
+        {currentSong?.title || '플레이 리스트를 선택해주세요'}
+      </div>
+      {currentSong ? (
+        <img
+          src={currentSong.thumbnail}
+          className="mini-thumbnail"
+          onClick={scrollToCurrentSong}
+        />
+      ) : (
+        <div className="mini-thumbnail-placeholder" />
+      )}
+      <div className="control-btns">
+        <button onClick={() => handleSkip(-1)}>
+          <img src="/img/main-prevBtn.png" alt="" />
+        </button>
+        <button onClick={() => setPlay(!play)}>
+          <img
+            src={play ? '/img/main-pauseBtn.png' : '/img/main-playBtn.png'}
+            alt=""
+          />
+        </button>
+        <button onClick={() => handleSkip(1)}>
+          <img src="/img/main-nextBtn.png" alt="" />
+        </button>
+      </div>
+    </div>
+  )
+}

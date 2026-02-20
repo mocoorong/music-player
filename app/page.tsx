@@ -3,6 +3,7 @@
 import {useState, useRef, useEffect} from 'react'
 import PlaylistModal from './components/Modal'
 import './page.css'
+import MusicVar from './components/MusicVar'
 
 export type Song = {
   id: string
@@ -255,6 +256,7 @@ export default function Home() {
     handleSkip,
     setCurrentSong,
     setPlay,
+    play,
     playerRef,
   }
 
@@ -447,36 +449,10 @@ export default function Home() {
           </div>
         </div>
       </div>
-
-      <div className="music-var">
-        <div className="music-var-title">
-          {playingPlaylistName ? `[${playingPlaylistName}] ` : ''}
-          {currentSong?.title || '플레이 리스트를 선택해주세요'}
-        </div>
-        {currentSong ? (
-          <img
-            src={currentSong.thumbnail}
-            className="mini-thumbnail"
-            onClick={scrollToCurrentSong}
-          />
-        ) : (
-          <div className="mini-thumbnail-placeholder" />
-        )}
-        <div className="control-btns">
-          <button onClick={() => handleSkip(-1)}>
-            <img src="/img/main-prevBtn.png" alt="" />
-          </button>
-          <button onClick={() => setPlay(!play)}>
-            <img
-              src={play ? '/img/main-pauseBtn.png' : '/img/main-playBtn.png'}
-              alt=""
-            />
-          </button>
-          <button onClick={() => handleSkip(1)}>
-            <img src="/img/main-nextBtn.png" alt="" />
-          </button>
-        </div>
-      </div>
+      <MusicVar
+        playbackControls={playbackControls}
+        scrollToCurrentSong={scrollToCurrentSong}
+      />
     </div>
   )
 }

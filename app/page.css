@@ -195,7 +195,7 @@ body {
   top: 0;
   background: rgba(60, 60, 60, 0.3);
   width: 100%;
-  height: 10%;
+  height: 12%;
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -203,8 +203,8 @@ body {
 
 .mini-thumbnail {
   position: absolute;
-  bottom: 5px;
-  right: 5px;
+  top: 10%;
+  right: 1%;
   width: 8%;
   aspect-ratio: 16/9;
   object-fit: cover;

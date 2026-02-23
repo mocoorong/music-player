@@ -302,7 +302,7 @@ export default function Home() {
               src={
                 currentSong && playingPlaylistId === center.id
                   ? currentSong.thumbnail
-                  : center.songs[0]?.thumbnail || ''
+                  : center.songs[0]?.thumbnail
               }
               className={`album-img ${currentSong && playingPlaylistId === center.id ? 'playing' : ''}`}
               alt=""

@@ -2,14 +2,6 @@ body {
   margin: 0;
 }
 
-.modal-inner-list {
-  -ms-overflow-style: none; /* IE, Edge */
-  scrollbar-width: none; /* Firefox */
-}
-.modal-inner-list::-webkit-scrollbar {
-  display: none; /* Chrome, Safari, Opera */
-}
-
 .search-results-dropdown {
   -ms-overflow-style: none; /* IE, Edge */
   scrollbar-width: none; /* Firefox */
@@ -370,7 +362,7 @@ body {
 
 .modal-inner-title {
   width: 100%;
-  height: 20%;
+  height: 15%;
   background-color: #f8f9fa;
   display: flex;
   align-items: center;
@@ -382,12 +374,36 @@ body {
 
 .modal-inner-list {
   width: 100%;
-  height: 100%;
+  flex: 1;
   background-color: white;
   display: flex;
   flex-direction: column;
-  overflow-y: auto;
-  padding: 1% 0;
+}
+
+.modal-inner-list::-webkit-scrollbar {
+  width: 8px;
+  display: block;
+}
+
+.modal-inner-list::-webkit-scrollbar-track {
+  background: #f1f1f1;
+  border-radius: 0 10px 10px 0;
+}
+
+.modal-inner-list::-webkit-scrollbar-thumb {
+  background: #ccc;
+  border-radius: 10px;
+  border: 2px solid #f1f1f1;
+}
+
+.modal-inner-list::-webkit-scrollbar-thumb:hover {
+  background: #888;
+}
+
+.modal-inner-list {
+  scrollbar-width: thin;
+  scrollbar-color: #ccc #f1f1f1;
+  overflow-y: scroll;
 }
 .drag-handle {
   cursor: grab;

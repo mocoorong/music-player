@@ -187,7 +187,15 @@ export default function Modal({
   if (!isOpen) return null
 
   return (
-    <div className="modal-bg" onClick={onClose}>
+    <div
+      className="modal-bg"
+      onClick={() => {
+        onClose()
+        setSearchQuery('')
+        setYoutubeUrl('')
+        setSearchResults([])
+      }}
+    >
       <div className="modal-inner" onClick={(e) => e.stopPropagation()}>
         <div className="modal-inner-left">
           <div className="playlist-title">

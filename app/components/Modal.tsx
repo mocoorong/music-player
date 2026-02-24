@@ -184,7 +184,13 @@ export default function Modal({
 
   const onDrop = async (e: React.DragEvent, targetIndex: number) => {
     e.preventDefault()
+    e.stopPropagation()
 
+    const url = e.dataTransfer.getData('text')
+    if (url && (url.includes('youtube.com') || url.includes('youtu.be'))) {
+      await addNewSongByUrl(url)
+      return
+    }
     if (draggedItemIndex === null || draggedItemIndex === targetIndex) {
       setDraggedItemIndex(null)
       return

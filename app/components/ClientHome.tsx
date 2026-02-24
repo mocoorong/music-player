@@ -71,16 +71,15 @@ export default function ClientHome({initialPlaylists}: Props) {
         setIsLoading(true)
         setLoadingText('데이터를 DB에 저장중입니다...')
 
-        const {addSong} = await import('./actions')
+        const {addSongBulkAction} = await import('./actions')
 
         for (const filePlaylist of jsonData) {
           const res = await addPlaylistAction(filePlaylist.title)
 
           if (res.success && res.data) {
             const newId = res.data.id
-            for (const song of filePlaylist.songs) {
-              await addSong(newId, song.title, song.youtubeUrl, song.thumbnail)
-            }
+
+            await addSongBulkAction(newId, filePlaylist.songs)
           }
         }
 

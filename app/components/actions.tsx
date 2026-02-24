@@ -93,3 +93,21 @@ export async function deleteSongAction(songId: string) {
     return {success: false}
   }
 }
+
+export async function addSongBulkAction(playlistId: string, songs: any[]) {
+  try {
+    for (const song of songs) {
+      await db.song.create({
+        data: {
+          playlistId,
+          title: song.title,
+          youtubeUrl: song.youtubeUrl,
+          thumbnail: song.thumbnail,
+        },
+      })
+    }
+    return {success: true}
+  } catch (error) {
+    return {success: false}
+  }
+}

@@ -6,7 +6,11 @@ export default async function Home() {
   // 1. 서버에서 DB에 저장된 모든 플레이리스트와 노래를 가져옵니다.
   const initialPlaylists = await db.playlist.findMany({
     include: {
-      songs: true,
+      songs: {
+        orderBy: {
+          order: 'asc',
+        },
+      },
     },
   })
 

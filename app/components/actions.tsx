@@ -58,13 +58,20 @@ export async function addSong(
   thumbnail: string
 ) {
   try {
+    const lastSong = await db.song.findFirst({
+      where: {playlistId},
+      orderBy: {order: 'desc'}, // 가장 큰 번호 찾기
+    })
+    const nextOrder = lastSong ? lastSong.order + 1 : 0
+
     const newSong = await db.song.create({
       data: {
         id: crypto.randomUUID(),
         title: title,
         youtubeUrl: url,
         thumbnail: thumbnail,
-        playlistId: playlistId, // 외래 키 연결
+        playlistId: playlistId,
+        order: nextOrder,
       },
     })
 
@@ -96,13 +103,15 @@ export async function deleteSongAction(songId: string) {
 
 export async function addSongBulkAction(playlistId: string, songs: any[]) {
   try {
-    for (const song of songs) {
+    for (let i = 0; i < songs.length; i++) {
+      const song = songs[i]
       await db.song.create({
         data: {
           playlistId,
           title: song.title,
           youtubeUrl: song.youtubeUrl,
           thumbnail: song.thumbnail,
+          order: i,
         },
       })
     }

@@ -20,6 +20,7 @@ model Song {
   title       String
   youtubeUrl  String
   thumbnail   String
+  order      Int      @default(0)
   playlistId  String
   playlist    Playlist @relation(fields: [playlistId], references: [id], onDelete: Cascade)
 }

@@ -71,20 +71,20 @@ export default function ClientHome({initialPlaylists}: Props) {
         setIsLoading(true)
         setLoadingText('데이터를 DB에 저장중입니다...')
 
-        for (const playlist of jsonData) {
-          // DB에 플레이리스트 생성 (기존 actions.tsx 활용)
-          const res = await addPlaylistAction(playlist.title)
+        const {addSong} = await import('./actions')
+
+        for (const filePlaylist of jsonData) {
+          const res = await addPlaylistAction(filePlaylist.title)
 
           if (res.success && res.data) {
             const newId = res.data.id
-            // 해당 플레이리스트에 속한 곡들을 DB에 하나씩 추가
-            for (const song of playlist.songs) {
-              const {addSong} = await import('./actions') // addSong 가져오기
+            for (const song of filePlaylist.songs) {
               await addSong(newId, song.title, song.youtubeUrl, song.thumbnail)
             }
           }
         }
-        alert('모든 데이터가 DB에 저장되었습니다! 페이지를 새로고침합니다.')
+
+        alert('데이터가 추가 완료! 페이지를 새로고침합니다.')
         window.location.reload()
       } catch (error) {
         console.error(error)

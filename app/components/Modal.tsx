@@ -234,10 +234,13 @@ export default function Modal({
     <div
       className="modal-bg"
       onClick={() => {
-        onClose()
-        setSearchQuery('')
-        setYoutubeUrl('')
-        setSearchResults([])
+        if (searchResults.length > 0) {
+          setSearchResults([])
+          setSearchQuery('')
+        } else {
+          onClose()
+          setYoutubeUrl('')
+        }
       }}
     >
       <div className="modal-inner" onClick={(e) => e.stopPropagation()}>

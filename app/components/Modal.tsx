@@ -240,6 +240,7 @@ export default function Modal({
         } else {
           onClose()
           setYoutubeUrl('')
+          setSearchQuery('')
         }
       }}
     >

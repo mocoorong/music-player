@@ -221,6 +221,7 @@ export default function ClientHome({initialPlaylists}: Props) {
 
   const deletePlaylist = async (id: string) => {
     if (!confirm('이 플레이 리스트를 삭제하시겠습니까?')) return
+    const currentIndex = playlists.findIndex((p) => p.id === id)
     const result = await deletePlaylistAction(id)
     if (result.success) {
       const next = playlists.filter((p) => p.id !== id)
@@ -232,7 +233,9 @@ export default function ClientHome({initialPlaylists}: Props) {
         playerRef.current?.stopVideo()
       }
       setPlaylists(next)
-      setActiveIndex(next.length > 0 ? 0 : -1)
+      let targetIndex = currentIndex - 1
+      if (targetIndex < 0) targetIndex = 0
+      setActiveIndex(next.length > 0 ? targetIndex : -1)
     }
   }
 

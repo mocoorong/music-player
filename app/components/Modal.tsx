@@ -1,7 +1,8 @@
 'use client'
 
-import {useState, useEffect} from 'react'
-import {Song, Playlist} from '../page'
+import {useState, useEffect, Dispatch, SetStateAction} from 'react'
+import {Song, Playlist} from './ClientHome'
+import {addSong, deleteSongAction} from './actions' // 서버 액션 임포트
 
 interface ModalProps {
   isOpen: boolean
@@ -11,6 +12,7 @@ interface ModalProps {
     payload: Partial<Playlist> | ((p: Playlist) => Playlist),
     targetId?: string
   ) => void
+  setPlaylists: Dispatch<SetStateAction<Playlist[]>> // 추가됨
   currentSong: Song | null
   playingPlaylistName: string
   playingPlaylistId: string
@@ -29,6 +31,7 @@ export default function Modal({
   playingPlaylistName,
   playingPlaylistId,
   updatePlaylist,
+  setPlaylists, // 추가됨
   handlePlaySong,
   handleSkip,
   setCurrentSong,
@@ -46,25 +49,18 @@ export default function Modal({
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
-        if (searchResults.length > 0) {
-          setSearchResults([]) // 검색 결과가 있으면 검색 결과만 닫음
-        } else {
-          onClose() // 검색 결과가 없으면 모달 자체를 닫음
-        }
+        if (searchResults.length > 0) setSearchResults([])
+        else onClose()
       }
     }
-    if (isOpen) {
-      window.addEventListener('keydown', handleKeyDown)
-    }
+    if (isOpen) window.addEventListener('keydown', handleKeyDown)
     return () => window.removeEventListener('keydown', handleKeyDown)
   }, [isOpen, searchResults, onClose])
 
-  // 플레이리스트 바뀔 때 제목 동기화
   useEffect(() => {
     setTempTitle(playlist.title)
   }, [playlist.id, playlist.title])
 
-  // URL에서 VideoID 추출
   const extractVideoId = (url: string) => {
     const regExp =
       /^.*((youtu.be\/)|(v\/)|(\/u\/\w\/)|(embed\/)|(watch\?))\??v?=?([^#&?]*).*/
@@ -76,6 +72,7 @@ export default function Modal({
     const newTitle = tempTitle.trim() || '제목 없음'
     updatePlaylist({title: newTitle}, playlist.id)
     setIsEditingTitle(false)
+    // 참고: 제목 수정도 DB에 반영하려면 별도의 updatePlaylistAction이 필요합니다.
   }
 
   const handleSearch = async () => {
@@ -91,66 +88,88 @@ export default function Modal({
     }
   }
 
+  // [DB 연동] URL로 노래 추가
   const addNewSongByUrl = async (url: string) => {
     const videoId = extractVideoId(url)
     if (!videoId) return alert('유효한 유튜브 링크가 아닙니다.')
+
     try {
       const res = await fetch(
         `https://noembed.com/embed?url=https://www.youtube.com/watch?v=${videoId}`
       )
       const data = await res.json()
-      const newSong: Song = {
-        id: crypto.randomUUID(),
-        title: data.title || '제목 없음',
-        thumbnail: `https://img.youtube.com/vi/${videoId}/hqdefault.jpg`,
-        youtubeUrl: url,
+      const title = data.title || '제목 없음'
+      const thumbnail = `https://img.youtube.com/vi/${videoId}/hqdefault.jpg`
+
+      // 1. DB 저장 요청
+      const result = await addSong(playlist.id, title, url, thumbnail)
+
+      if (result.success) {
+        // 2. 클라이언트 상태 갱신
+        setPlaylists((prev) =>
+          prev.map((p) =>
+            p.id === playlist.id
+              ? {...p, songs: [...p.songs, result.song as Song]}
+              : p
+          )
+        )
+        return true
       }
-      updatePlaylist(
-        (prev) => ({...prev, songs: [...prev.songs, newSong]}),
-        playlist.id
-      )
-      return true
     } catch {
       alert('정보를 가져오지 못했습니다.')
-      return false
+    }
+    return false
+  }
+
+  // [DB 연동] 검색 결과에서 노래 추가
+  const addSongFromSearch = async (video: any) => {
+    const title = video.snippet.title
+    const thumbnail = video.snippet.thumbnails.high.url
+    const url = `https://www.youtube.com/watch?v=${video.id.videoId}`
+
+    const result = await addSong(playlist.id, title, url, thumbnail)
+
+    if (result.success) {
+      setPlaylists((prev) =>
+        prev.map((p) =>
+          p.id === playlist.id
+            ? {...p, songs: [...p.songs, result.song as Song]}
+            : p
+        )
+      )
+      setSearchResults([])
+      setSearchQuery('')
     }
   }
 
-  const addSongFromSearch = (video: any) => {
-    const newSong: Song = {
-      id: crypto.randomUUID(),
-      title: video.snippet.title,
-      thumbnail: video.snippet.thumbnails.high.url,
-      youtubeUrl: `https://www.youtube.com/watch?v=${video.id.videoId}`,
-    }
-    updatePlaylist(
-      (prev) => ({...prev, songs: [...prev.songs, newSong]}),
-      playlist.id
-    )
-    setSearchResults([])
-    setSearchQuery('')
-  }
+  // [DB 연동] 노래 삭제
+  const deleteSong = async (songId: string) => {
+    if (!confirm('이 곡을 삭제하시겠습니까?')) return
 
-  const deleteSong = (songId: string) => {
-    updatePlaylist(
-      (prev) => ({
-        ...prev,
-        songs: prev.songs.filter((s) => s.id !== songId),
-      }),
-      playlist.id
-    )
+    const result = await deleteSongAction(songId)
 
-    if (currentSong?.id === songId) {
-      if (playlist.songs.length > 1) handleSkip(1)
-      else {
-        setPlay(false)
-        setCurrentSong(null)
-        playerRef.current?.stopVideo()
+    if (result.success) {
+      // 클라이언트 상태 업데이트
+      setPlaylists((prev) =>
+        prev.map((p) =>
+          p.id === playlist.id
+            ? {...p, songs: p.songs.filter((s) => s.id !== songId)}
+            : p
+        )
+      )
+
+      if (currentSong?.id === songId) {
+        if (playlist.songs.length > 1) handleSkip(1)
+        else {
+          setPlay(false)
+          setCurrentSong(null)
+          playerRef.current?.stopVideo()
+        }
       }
     }
   }
 
-  // 드래그 앤 드롭
+  // 드래그 앤 드롭 (순서 변경은 DB 정렬 필드가 필요하므로 우선 로컬 UI만 동작)
   const onDragStart = (e: React.DragEvent, index: number) => {
     setDraggedItemIndex(index)
     e.dataTransfer.effectAllowed = 'move'
@@ -320,7 +339,7 @@ export default function Modal({
             )}
             {playlist.songs
               .filter((song) =>
-                activeTab === 'search'
+                activeTab === 'search' && searchQuery
                   ? song.title.toLowerCase().includes(searchQuery.toLowerCase())
                   : true
               )

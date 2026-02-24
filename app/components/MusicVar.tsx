@@ -1,4 +1,4 @@
-import {Playlist, Song} from '../page'
+import {Song, Playlist} from './ClientHome'
 
 interface MusicVarProps {
   playbackControls: {

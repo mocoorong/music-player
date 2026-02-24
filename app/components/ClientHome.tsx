@@ -44,9 +44,25 @@ export default function ClientHome({initialPlaylists}: Props) {
     isAutoPlay,
   })
 
+  const containerRef = useRef<HTMLDivElement>(null)
+
   useEffect(() => {
     stateRef.current = {playlists, playingPlaylistId, currentSong, isAutoPlay}
   }, [playlists, playingPlaylistId, currentSong, isAutoPlay])
+
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (
+        openMenu &&
+        containerRef.current &&
+        !containerRef.current.contains(e.target as Node)
+      ) {
+        setOpenMenu(null)
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside)
+    return () => document.removeEventListener('mousedown', handleClickOutside)
+  }, [openMenu])
 
   const toggleMenu = (menuName: string) =>
     setOpenMenu((prev) => (prev === menuName ? null : menuName))
@@ -400,9 +416,9 @@ export default function ClientHome({initialPlaylists}: Props) {
         />
       )}
 
-      <div className="icon-container">
+      <div className="icon-container" ref={containerRef}>
         <div className="icon-menu-point">
-          <div className="icon-wrapper" onClick={(e) => e.stopPropagation()}>
+          <div className="icon-wrapper">
             <button
               className={`autoplay-toggle ${isAutoPlay ? 'on' : 'off'}`}
               onClick={() => toggleMenu('autoplay')}

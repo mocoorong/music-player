@@ -96,6 +96,34 @@ export default function ClientHome({initialPlaylists}: Props) {
     reader.readAsText(file)
   }
 
+  const exportToJson = () => {
+    if (playlists.length === 0) {
+      alert('빈 플레이리스트는 공유가 불가능합니다.')
+      return
+    }
+
+    const dataToExport = playlists.map((p) => ({
+      title: p.title,
+      songs: p.songs.map((s) => ({
+        title: s.title,
+        youtubeUrl: s.youtubeUrl,
+        thumbnail: s.thumbnail,
+      })),
+    }))
+
+    const dataStr = JSON.stringify(dataToExport, null, 2)
+
+    const dataUri =
+      'data:application/json;charset=utf-8,' + encodeURIComponent(dataStr)
+    const linkElement = document.createElement('a')
+    linkElement.setAttribute('href', dataUri)
+    linkElement.setAttribute(
+      'download',
+      `playlist_backup_${new Date().toISOString().slice(0, 10)}.json`
+    )
+    linkElement.click()
+  }
+
   const updatePlaylist = (
     payload: Partial<Playlist> | ((p: Playlist) => Playlist),
     targetId?: string
@@ -463,8 +491,10 @@ export default function ClientHome({initialPlaylists}: Props) {
                     document.getElementById('json-upload')?.click()
                   }
                 >
-                  JSON 파일로 DB에 저장하기
+                  플레이리스트 적용하기
                 </button>
+                {/* 내보내기 (Export) */}
+                <button onClick={exportToJson}>플레이리스트 내보내기</button>
               </div>
             </div>
           </div>

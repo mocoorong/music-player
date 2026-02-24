@@ -33,6 +33,9 @@ export default function ClientHome({initialPlaylists}: Props) {
   const [sleepTime, setSleepTime] = useState<number | null>(null)
   const [openMenu, setOpenMenu] = useState<string | null>(null)
 
+  const [isLoading, setIsLoading] = useState(false)
+  const [loadingText, setLoadingText] = useState('')
+
   const playerRef = useRef<any>(null)
   const stateRef = useRef({
     playlists,
@@ -53,6 +56,44 @@ export default function ClientHome({initialPlaylists}: Props) {
       /^.*((youtu.be\/)|(v\/)|(\/u\/\w\/)|(embed\/)|(watch\?))\??v?=?([^#&?]*).*/
     const match = url.match(regExp)
     return match && match[7].length === 11 ? match[7] : ''
+  }
+
+  const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0]
+    if (!file) return
+
+    const reader = new FileReader()
+    reader.onload = async (e) => {
+      try {
+        const jsonData = JSON.parse(e.target?.result as string)
+        alert('데이터 전송을 시작합니다. 잠시만 기다려주세요.')
+
+        setIsLoading(true)
+        setLoadingText('데이터를 DB에 저장중입니다...')
+
+        for (const playlist of jsonData) {
+          // DB에 플레이리스트 생성 (기존 actions.tsx 활용)
+          const res = await addPlaylistAction(playlist.title)
+
+          if (res.success && res.data) {
+            const newId = res.data.id
+            // 해당 플레이리스트에 속한 곡들을 DB에 하나씩 추가
+            for (const song of playlist.songs) {
+              const {addSong} = await import('./actions') // addSong 가져오기
+              await addSong(newId, song.title, song.youtubeUrl, song.thumbnail)
+            }
+          }
+        }
+        alert('모든 데이터가 DB에 저장되었습니다! 페이지를 새로고침합니다.')
+        window.location.reload()
+      } catch (error) {
+        console.error(error)
+        alert('파일 형식이 잘못되었거나 저장 중 오류가 발생했습니다.')
+      } finally {
+        setIsLoading(false)
+      }
+    }
+    reader.readAsText(file)
   }
 
   const updatePlaylist = (
@@ -228,6 +269,12 @@ export default function ClientHome({initialPlaylists}: Props) {
 
   return (
     <div className="main-bg">
+      {isLoading && (
+        <div className="loading-overlay">
+          <div className="loader"></div>
+          <p>{loadingText}</p>
+        </div>
+      )}
       <div
         className="bg-layer"
         style={{
@@ -402,10 +449,21 @@ export default function ClientHome({initialPlaylists}: Props) {
                 <p>데이터 관리</p>
               </div>
               <div className="menu-options">
+                {/* 1. 실제 파일을 선택할 수 있는 숨겨진 input */}
+                <input
+                  type="file"
+                  accept=".json"
+                  id="json-upload"
+                  style={{display: 'none'}}
+                  onChange={handleFileUpload} // 아래에서 만들 함수 연결
+                />
+                {/* 2. 클릭 시 위 input을 대신 클릭해주는 버튼 */}
                 <button
-                  onClick={() => alert('DB 연동으로 자동 저장 중입니다.')}
+                  onClick={() =>
+                    document.getElementById('json-upload')?.click()
+                  }
                 >
-                  백업 완료 (DB 저장됨)
+                  JSON 파일로 DB에 저장하기
                 </button>
               </div>
             </div>

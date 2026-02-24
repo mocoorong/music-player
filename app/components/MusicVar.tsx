@@ -1,11 +1,11 @@
-import {Song} from '../page'
+import {Playlist, Song} from '../page'
 
 interface MusicVarProps {
   playbackControls: {
     currentSong: Song | null
     playingPlaylistName: string
     playingPlaylistId: string
-    handlePlaySong: (song: Song, playlist: any) => void
+    handlePlaySong: (song: Song, playlist: Playlist) => void
     handleSkip: (direction: number) => void
     setCurrentSong: (song: Song | null) => void
     setPlay: (play: boolean) => void

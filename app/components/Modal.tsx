@@ -182,8 +182,9 @@ export default function Modal({
     e.dataTransfer.dropEffect = 'move'
   }
 
-  const onDrop = (e: React.DragEvent, targetIndex: number) => {
+  const onDrop = async (e: React.DragEvent, targetIndex: number) => {
     e.preventDefault()
+
     if (draggedItemIndex === null || draggedItemIndex === targetIndex) {
       setDraggedItemIndex(null)
       return
@@ -192,8 +193,26 @@ export default function Modal({
     const draggedItem = newSongs[draggedItemIndex]
     newSongs.splice(draggedItemIndex, 1)
     newSongs.splice(targetIndex, 0, draggedItem)
-    updatePlaylist({songs: newSongs}, playlist.id)
+
+    const songsNewOrder = newSongs.map((song, index) => ({
+      ...song,
+      order: index,
+    }))
+
+    updatePlaylist({songs: songsNewOrder}, playlist.id)
     setDraggedItemIndex(null)
+
+    try {
+      const {updateSongOrderAction} = await import('./actions')
+      const result = await updateSongOrderAction(
+        songsNewOrder.map((s) => ({id: s.id, order: s.order}))
+      )
+      if (!result.success) {
+        alert('순서 저장에 실패했습니다. 다시 시도해 주세요.')
+      }
+    } catch (error) {
+      console.error(error)
+    }
   }
 
   const handleExternalDrop = async (e: React.DragEvent) => {

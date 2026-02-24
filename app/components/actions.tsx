@@ -101,6 +101,7 @@ export async function deleteSongAction(songId: string) {
   }
 }
 
+// 각 플레이리스트별 전체 노래 추가
 export async function addSongBulkAction(playlistId: string, songs: any[]) {
   try {
     for (let i = 0; i < songs.length; i++) {
@@ -117,6 +118,25 @@ export async function addSongBulkAction(playlistId: string, songs: any[]) {
     }
     return {success: true}
   } catch (error) {
+    return {success: false}
+  }
+}
+
+export async function updateSongOrderAction(
+  songs: {id: string; order: number}[]
+) {
+  try {
+    await db.$transaction(
+      songs.map((song) =>
+        db.song.update({
+          where: {id: song.id},
+          data: {order: song.order},
+        })
+      )
+    )
+    return {success: true}
+  } catch (error) {
+    console.error('순서 업데이트 에러:', error)
     return {success: false}
   }
 }

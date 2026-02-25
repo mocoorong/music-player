@@ -20,4 +20,6 @@ export default {
       },
     }),
   ],
+  session: {strategy: 'jwt'},
+  secret: process.env.AUTH_SECRET,
 } satisfies NextAuthConfig

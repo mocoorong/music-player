@@ -166,16 +166,6 @@ body {
 .modal-inner-left {
   position: relative;
 }
-.playlist-title {
-  position: absolute;
-  top: 3%;
-  left: 3%;
-  width: 94%;
-  color: #fff;
-  display: flex;
-  justify-content: center;
-  z-index: 10;
-}
 
 .center {
   position: absolute;
@@ -302,8 +292,19 @@ body {
 .youtube-container {
   position: fixed;
   z-index: 2000;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  flex-direction: column;
+  gap: 5px;
 }
-
+.playlist-title {
+  width: 94%;
+  color: #fff;
+  display: flex;
+  justify-content: center;
+  z-index: 10;
+}
 .hidden-player {
   position: fixed;
   width: 1px;

@@ -333,6 +333,9 @@ export default function ClientHome({initialPlaylists}: Props) {
       <div
         className={`youtube-container ${modal ? 'on-modal' : 'hidden-player'}`}
       >
+        <div className="playlist-title">
+          {playingPlaylistName ? `${playingPlaylistName} 재생 중...` : ''}
+        </div>
         <div id="yt-player"></div>
         <div className="modal-video-info">
           <p className="modal-video-title">

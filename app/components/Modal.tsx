@@ -14,8 +14,6 @@ interface ModalProps {
   ) => void
   setPlaylists: Dispatch<SetStateAction<Playlist[]>> // 추가됨
   currentSong: Song | null
-  playingPlaylistName: string
-  playingPlaylistId: string
   handlePlaySong: (song: Song, playlist: Playlist) => void
   handleSkip: (direction: number) => void
   setCurrentSong: (song: Song | null) => void
@@ -28,10 +26,8 @@ export default function Modal({
   onClose,
   playlist,
   currentSong,
-  playingPlaylistName,
-  playingPlaylistId,
   updatePlaylist,
-  setPlaylists, // 추가됨
+  setPlaylists,
   handlePlaySong,
   handleSkip,
   setCurrentSong,
@@ -245,13 +241,7 @@ export default function Modal({
       }}
     >
       <div className="modal-inner" onClick={(e) => e.stopPropagation()}>
-        <div className="modal-inner-left">
-          <div className="playlist-title">
-            {playingPlaylistId === playlist.id && playingPlaylistName
-              ? `${playingPlaylistName} 재생 중...`
-              : ''}
-          </div>
-        </div>
+        <div className="modal-inner-left"></div>
         <div className="modal-inner-right">
           <div className="modal-inner-title">
             <div className="title-edit-zone">

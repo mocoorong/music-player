@@ -370,9 +370,7 @@ body {
 .modal-video-info {
   position: absolute;
   bottom: -20px;
-  color: white;
   width: 100%;
-  text-align: center;
 }
 .modal-inner-youtube {
   overflow: hidden;

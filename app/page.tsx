@@ -9,17 +9,15 @@ export default async function Home() {
 
   if (!session) {
     return (
-      <div className="flex flex-col items-center justify-center min-h-screen">
-        <h1 className="text-2xl font-bold mb-6">뮤직 플레이어</h1>
+      <div className="login-container">
+        <h1 className="login-title">뮤직 플레이어</h1>
         <form
           action={async () => {
             'use server'
             await signIn('kakao')
           }}
         >
-          <button className="bg-[#FEE500] text-black px-6 py-3 rounded-lg font-bold">
-            카카오로 시작하기
-          </button>
+          <button className="kakao-login-btn">카카오로 시작하기</button>
         </form>
       </div>
     )
@@ -53,56 +51,21 @@ export default async function Home() {
 
   return (
     <>
-      {/* 왼쪽 상단 유저 정보 UI */}
-      <div
-        style={{
-          position: 'fixed',
-          top: '20px',
-          left: '20px',
-          zIndex: 9999,
-          display: 'flex',
-          alignItems: 'center',
-          gap: '15px',
-          backgroundColor: 'rgba(20, 20, 20, 0.8)',
-          padding: '10px 20px',
-          borderRadius: '12px',
-          border: '1px solid rgba(255, 255, 255, 0.1)',
-          boxShadow: '0 4px 20px rgba(0,0,0,0.5)',
-        }}
-      >
-        <span style={{fontSize: '14px', fontWeight: '600', color: '#fff'}}>
-          {session.user?.name}님
-        </span>
-        <div
-          style={{
-            width: '1px',
-            height: '12px',
-            backgroundColor: 'rgba(255,255,255,0.2)',
-          }}
-        />
+      <div className="user-info-bar">
+        <span className="user-name">{session.user?.name}님</span>
+
+        <div className="user-info-divider" />
+
         <form
           action={async () => {
             'use server'
             await signOut()
           }}
         >
-          <button
-            style={{
-              fontSize: '13px',
-              color: '#ff6b6b',
-              background: 'none',
-              border: 'none',
-              cursor: 'pointer',
-              padding: 0,
-              fontWeight: '500',
-            }}
-          >
-            로그아웃
-          </button>
+          <button className="logout-btn">로그아웃</button>
         </form>
       </div>
 
-      {/* addPlaylist 함수를 넘겨줍니다 */}
       <ClientHome
         initialPlaylists={initialPlaylists}
         addPlaylist={addPlaylist}

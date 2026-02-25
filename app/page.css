@@ -819,3 +819,89 @@ body {
   border-radius: 6px;
   cursor: pointer;
 }
+/* 유저 정보 컨테이너 */
+.user-info-bar {
+  position: fixed;
+  top: 20px;
+  left: 20px;
+  z-index: 9999;
+  display: flex;
+  align-items: center;
+  gap: 15px;
+  background-color: rgba(20, 20, 20, 0.8);
+  padding: 10px 20px;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+  backdrop-filter: blur(8px); /* 약간의 유리에 비치는 듯한 효과 추가 */
+}
+
+/* 유저 이름 텍스트 */
+.user-name {
+  font-size: 14px;
+  font-weight: 600;
+  color: #fff;
+}
+
+/* 세로 구분선 */
+.user-info-divider {
+  width: 1px;
+  height: 12px;
+  background-color: rgba(255, 255, 255, 0.2);
+}
+
+/* 로그아웃 버튼 */
+.logout-btn {
+  font-size: 13px;
+  color: #ff6b6b;
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 0;
+  font-weight: '500';
+  transition: opacity 0.2s;
+}
+
+.logout-btn:hover {
+  opacity: 0.8;
+  text-decoration: underline;
+}
+/* 로그인 전체 배경 */
+.login-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 100vh;
+  background-color: #121212; /* 다크 모드 배경 */
+  color: white;
+}
+
+/* 제목 스타일 */
+.login-title {
+  font-size: 2.5rem;
+  font-weight: 800;
+  margin-bottom: 2rem;
+  letter-spacing: -0.05rem;
+}
+
+/* 카카오 로그인 버튼 전용 스타일 */
+.kakao-login-btn {
+  background-color: #fee500;
+  color: #3c1e1e;
+  padding: 14px 40px;
+  border-radius: 12px;
+  font-size: 16px;
+  font-weight: 700;
+  border: none;
+  cursor: pointer;
+  transition:
+    transform 0.2s,
+    background-color 0.2s;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+}
+
+.kakao-login-btn:hover {
+  background-color: #fada0a;
+  transform: translateY(-2px);
+}

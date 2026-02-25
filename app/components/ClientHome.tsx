@@ -507,15 +507,14 @@ export default function ClientHome({initialPlaylists}: Props) {
                 <p>데이터 관리</p>
               </div>
               <div className="menu-options">
-                {/* 1. 실제 파일을 선택할 수 있는 숨겨진 input */}
                 <input
                   type="file"
                   accept=".json"
                   id="json-upload"
                   style={{display: 'none'}}
-                  onChange={handleFileUpload} // 아래에서 만들 함수 연결
+                  onChange={handleFileUpload}
                 />
-                {/* 2. 클릭 시 위 input을 대신 클릭해주는 버튼 */}
+
                 <button
                   onClick={() =>
                     document.getElementById('json-upload')?.click()
@@ -523,8 +522,8 @@ export default function ClientHome({initialPlaylists}: Props) {
                 >
                   플레이리스트 적용하기
                 </button>
-                {/* 내보내기 (Export) */}
-                <button onClick={exportToJson}>플레이리스트 내보내기</button>
+
+                <button onClick={exportToJson}>플레이리스트 공유하기</button>
               </div>
             </div>
           </div>

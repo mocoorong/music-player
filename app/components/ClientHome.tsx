@@ -350,26 +350,29 @@ export default function ClientHome({initialPlaylists}: Props) {
             className="playlist-album left"
             onClick={() => setActiveIndex(activeIndex - 1)}
           >
-            {left.songs[0] ? (
-              <img src={left.songs[0].thumbnail} alt="" />
-            ) : (
-              <div className="no-thumbnail">곡 없음</div>
-            )}
+            <div className="album-size">
+              {left.songs[0] ? (
+                <img src={left.songs[0].thumbnail} alt="" />
+              ) : (
+                <div className="no-thumbnail">곡 없음</div>
+              )}
+            </div>
           </div>
         )}
         {center && (
           <div className="playlist-album center" onClick={() => setModal(true)}>
-            <div className="playlist-album-title">{center.title}</div>
-            <img
-              src={
-                currentSong && playingPlaylistId === center.id
-                  ? currentSong.thumbnail
-                  : center.songs[0]?.thumbnail
-              }
-              className={`album-img ${currentSong && playingPlaylistId === center.id ? 'playing' : ''}`}
-              alt=""
-            />
-            {!center.songs[0] && <div className="no-thumbnail">곡 없음</div>}
+            <div className="album-size">
+              <img
+                src={
+                  currentSong && playingPlaylistId === center.id
+                    ? currentSong.thumbnail
+                    : center.songs[0]?.thumbnail
+                }
+                className={`album-img ${currentSong && playingPlaylistId === center.id ? 'playing' : ''}`}
+                alt=""
+              />
+              {!center.songs[0] && <div className="no-thumbnail">곡 없음</div>}
+            </div>
             <button
               className="album-play-overlay-btn"
               onClick={(e) => {
@@ -396,7 +399,9 @@ export default function ClientHome({initialPlaylists}: Props) {
             onClick={() => setActiveIndex(activeIndex + 1)}
           >
             {right.songs[0] ? (
-              <img src={right.songs[0].thumbnail} alt="" />
+              <div className="album-size">
+                <img src={right.songs[0].thumbnail} alt="" />
+              </div>
             ) : (
               <div className="no-thumbnail">곡 없음</div>
             )}

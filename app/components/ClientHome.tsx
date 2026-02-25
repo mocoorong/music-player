@@ -16,6 +16,7 @@ export type Playlist = {id: string; title: string; songs: Song[]}
 
 interface Props {
   initialPlaylists: any[]
+  addPlaylist: (title: string) => Promise<void>
 }
 
 export default function ClientHome({initialPlaylists}: Props) {

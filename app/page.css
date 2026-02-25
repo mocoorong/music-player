@@ -833,7 +833,7 @@ body {
   border-radius: 12px;
   border: 1px solid rgba(255, 255, 255, 0.1);
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
-  backdrop-filter: blur(8px); /* 약간의 유리에 비치는 듯한 효과 추가 */
+  backdrop-filter: blur(8px);
 }
 
 /* 유저 이름 텍스트 */

@@ -166,6 +166,45 @@ body {
   border-left: 15px solid #fff;
   margin-left: 4px;
 }
+.album-title-overlay {
+  position: absolute;
+
+  top: 70%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+
+  width: 90%;
+  text-align: center;
+  color: white;
+  font-size: 1rem;
+  font-weight: bold;
+  text-shadow: 0 2px 6px rgba(0, 0, 0, 0.9);
+
+  /* 기본 상태 숨김 */
+  opacity: 0;
+  transition:
+    opacity 0.3s ease,
+    top 0.3s ease; /* 나타날 때 살짝 위로 올라오는 효과 */
+
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  pointer-events: none;
+  z-index: 12;
+}
+.playlist-album.center:hover .album-title-overlay {
+  opacity: 1;
+  top: 65%;
+}
+
+.album-play-overlay-btn {
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+.playlist-album.center:hover .album-play-overlay-btn {
+  opacity: 1;
+}
 .modal-inner-left {
   position: relative;
 }

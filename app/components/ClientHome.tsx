@@ -375,6 +375,7 @@ export default function ClientHome({initialPlaylists}: Props) {
                 <div className="no-thumbnail">곡 없음</div>
               )}
             </div>
+            <div className="album-title-overlay">{center.title}</div>
             <button
               className="album-play-overlay-btn"
               onClick={(e) => {

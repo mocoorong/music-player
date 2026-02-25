@@ -559,10 +559,20 @@ body {
   cursor: pointer;
   display: flex;
   align-items: center;
-  gap: 5px;
-  white-space: nowrap;
+  max-width: 30%;
+  min-width: 0;
 }
 
+.title-text {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  flex-shrink: 1;
+}
+
+.edit-icon {
+  flex-shrink: 0;
+}
 .search-results-dropdown {
   position: absolute;
   top: 55px;
@@ -611,7 +621,7 @@ body {
   display: flex;
   gap: 10px;
 }
-/* 검색 영역 컨테이너 */
+
 .search-box-container {
   display: flex;
   gap: 8px;
@@ -619,6 +629,7 @@ body {
   background: rgba(255, 255, 255, 0.1);
   min-width: 0;
   border-radius: 8px;
+  max-width: 65%;
 }
 
 .search-dropdown {

@@ -259,7 +259,8 @@ export default function Modal({
                   className="modal-title-display"
                   onClick={() => setIsEditingTitle(true)}
                 >
-                  {playlist.title} ✎
+                  <span className="title-text">{playlist.title}</span>
+                  <span className="edit-icon">✎</span>
                 </p>
               )}
               <div className="search-box-container">

@@ -362,16 +362,18 @@ export default function ClientHome({initialPlaylists}: Props) {
         {center && (
           <div className="playlist-album center" onClick={() => setModal(true)}>
             <div className="album-size">
-              <img
-                src={
-                  currentSong && playingPlaylistId === center.id
-                    ? currentSong.thumbnail
-                    : center.songs[0]?.thumbnail
-                }
-                className={`album-img ${currentSong && playingPlaylistId === center.id ? 'playing' : ''}`}
-                alt=""
-              />
-              {!center.songs[0] && <div className="no-thumbnail">곡 없음</div>}
+              {center.songs[0] ? (
+                <img
+                  src={
+                    currentSong && playingPlaylistId === center.id
+                      ? currentSong.thumbnail
+                      : center.songs[0]?.thumbnail
+                  }
+                  alt=""
+                />
+              ) : (
+                <div className="no-thumbnail">곡 없음</div>
+              )}
             </div>
             <button
               className="album-play-overlay-btn"

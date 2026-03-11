@@ -157,30 +157,44 @@ export default function Modal(props: ModalProps) {
             className="modal-inner-list"
             onDragOver={(e) => {
               e.preventDefault()
-              e.dataTransfer.dropEffect = 'copy'
+
+              e.dataTransfer.dropEffect =
+                state.draggedItemIndex !== null ? 'move' : 'copy'
             }}
             onDrop={(e) => {
-              e.preventDefault()
-              e.stopPropagation()
-              actions.addNewSongByUrl(e.dataTransfer.getData('text'))
+              if (state.draggedItemIndex === null) {
+                e.preventDefault()
+                e.stopPropagation()
+                const url = e.dataTransfer.getData('text')
+                if (url) actions.addNewSongByUrl(url)
+              }
             }}
           >
             {playlist.songs.length === 0 && (
               <div
                 className="no-songs-msg"
-                onDragOver={(e) => e.preventDefault()}
+                onDragOver={(e) => {
+                  e.preventDefault()
+                  e.dataTransfer.dropEffect = 'copy'
+                }}
                 onDrop={(e) => actions.handleExternalDrop(e)}
               >
                 곡을 추가하거나 링크를 드래그해 오세요.
               </div>
             )}
+
             {playlist.songs.map((song, i) => (
               <div
                 key={song.id}
                 id={`song-${song.id}`}
                 className={`song-item ${currentSong?.id === song.id ? 'active-playing' : ''}`}
                 onClick={() => handlePlaySong(song, playlist)}
-                onDragOver={(e) => e.preventDefault()}
+                onDragOver={(e) => {
+                  e.preventDefault()
+
+                  e.dataTransfer.dropEffect =
+                    state.draggedItemIndex !== null ? 'move' : 'copy'
+                }}
                 onDrop={(e) => actions.onDrop(e, i)}
               >
                 <div
@@ -190,15 +204,26 @@ export default function Modal(props: ModalProps) {
                 >
                   ☰
                 </div>
+
                 <div className="song-info">
-                  <img src={song.thumbnail} className="song-thumbnail" alt="" />
+                  <img
+                    src={song.thumbnail || '/default-thumbnail.png'}
+                    className="song-thumbnail"
+                    alt={song.title}
+                  />
                   <span className="song-title-text">{song.title}</span>
                 </div>
+
                 <div
                   className="song-controls"
                   onClick={(e) => e.stopPropagation()}
                 >
-                  <button onClick={() => actions.deleteSong(song.id)}>X</button>
+                  <button
+                    className="delete-btn"
+                    onClick={() => actions.deleteSong(song.id)}
+                  >
+                    ✕
+                  </button>
                 </div>
               </div>
             ))}

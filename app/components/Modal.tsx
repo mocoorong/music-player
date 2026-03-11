@@ -110,9 +110,10 @@ export default function Modal(props: ModalProps) {
                       />
                       <button
                         className="search-btn"
-                        onClick={() =>
+                        onClick={() => {
                           actions.addNewSongByUrl(state.youtubeUrl)
-                        }
+                          actions.setYoutubeUrl('')
+                        }}
                       >
                         추가
                       </button>

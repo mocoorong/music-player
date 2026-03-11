@@ -174,9 +174,9 @@ export default function ClientHome({initialPlaylists}: Props) {
           >
             <div className="album-size">
               {left.songs[0] ? (
-                <img src={left.songs[0].thumbnail} alt="" />
+                <img src={left.songs[0].thumbnail} alt="썸네일" />
               ) : (
-                <div className="no-thumbnail">곡 없음</div>
+                <div className="no-thumbnail"></div>
               )}
             </div>
           </div>
@@ -191,9 +191,9 @@ export default function ClientHome({initialPlaylists}: Props) {
                 src={
                   state.currentSong && state.playingPlaylistId === center.id
                     ? state.currentSong.thumbnail
-                    : center.songs[0]?.thumbnail || ''
+                    : center.songs[0]?.thumbnail
                 }
-                alt=""
+                alt="썸네일"
               />
             </div>
             <div className="album-title-overlay">{center.title}</div>
@@ -224,9 +224,9 @@ export default function ClientHome({initialPlaylists}: Props) {
           >
             <div className="album-size">
               {right.songs[0] ? (
-                <img src={right.songs[0].thumbnail} alt="" />
+                <img src={right.songs[0].thumbnail} alt="썸네일" />
               ) : (
-                <div className="no-thumbnail">곡 없음</div>
+                <div className="no-thumbnail"></div>
               )}
             </div>
           </div>

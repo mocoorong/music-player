@@ -2,7 +2,7 @@
 
 import {useState, useEffect, Dispatch, SetStateAction} from 'react'
 import {Song, Playlist} from './ClientHome'
-import {addSong, deleteSongAction} from './actions' // 서버 액션 임포트
+import {addSong, deleteSongAction} from '../actions' // 서버 액션 임포트
 
 interface ModalProps {
   isOpen: boolean
@@ -205,7 +205,7 @@ export default function Modal({
     setDraggedItemIndex(null)
 
     try {
-      const {updateSongOrderAction} = await import('./actions')
+      const {updateSongOrderAction} = await import('../actions')
       const result = await updateSongOrderAction(
         songsNewOrder.map((s) => ({id: s.id, order: s.order}))
       )

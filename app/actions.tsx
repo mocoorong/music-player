@@ -1,8 +1,8 @@
 'use server'
 
-import {db} from '../../lib/db'
+import {db} from '../lib/db'
 import {revalidatePath} from 'next/cache'
-import {auth} from '../../auth'
+import {auth} from '../auth'
 /**
  * 1. 플레이리스트 추가
  * 새로운 플레이리스트를 생성하고 DB에 저장합니다.

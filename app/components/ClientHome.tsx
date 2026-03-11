@@ -4,7 +4,7 @@ import {useState, useRef, useEffect} from 'react'
 import Modal from './Modal'
 import MusicVar from './MusicVar'
 import './../page.css'
-import {addPlaylistAction, deletePlaylistAction} from './actions'
+import {addPlaylistAction, deletePlaylistAction} from '../actions'
 
 export type Song = {
   id: string
@@ -88,7 +88,7 @@ export default function ClientHome({initialPlaylists}: Props) {
         setIsLoading(true)
         setLoadingText('데이터를 DB에 저장중입니다...')
 
-        const {addSongBulkAction} = await import('./actions')
+        const {addSongBulkAction} = await import('../actions')
 
         for (const filePlaylist of jsonData) {
           const res = await addPlaylistAction(filePlaylist.title)

@@ -198,10 +198,12 @@ export default function ClientHome({initialPlaylists}: Props) {
             </div>
             <div className="album-title-overlay">{center.title}</div>
             <button
-              className="album-play-overlay-btn"
+              className={`album-play-overlay-btn ${center.songs.length === 0 ? 'disabled' : ''}`}
               onClick={(e) => {
                 e.stopPropagation()
-                actions.handlePlaySong(center.songs[0], center)
+                if (center.songs.length > 0) {
+                  actions.handlePlaySong(center.songs[0], center)
+                }
               }}
             >
               <div className="play-icon-inner" />

@@ -158,6 +158,7 @@ export function useModalLogic({
 
   const handleExternalDrop = async (e: React.DragEvent) => {
     e.preventDefault()
+    e.stopPropagation()
     const url = e.dataTransfer.getData('text')
     if (url.includes('youtube.com') || url.includes('youtu.be')) {
       await addNewSongByUrl(url)

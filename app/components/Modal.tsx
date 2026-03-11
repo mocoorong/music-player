@@ -155,13 +155,22 @@ export default function Modal(props: ModalProps) {
           </div>
           <div
             className="modal-inner-list"
-            onDragOver={(e) => e.preventDefault()}
-            onDrop={(e) =>
+            onDragOver={(e) => {
+              e.preventDefault()
+              e.dataTransfer.dropEffect = 'copy'
+            }}
+            onDrop={(e) => {
+              e.preventDefault()
+              e.stopPropagation()
               actions.addNewSongByUrl(e.dataTransfer.getData('text'))
-            }
+            }}
           >
             {playlist.songs.length === 0 && (
-              <div className="no-songs-msg">
+              <div
+                className="no-songs-msg"
+                onDragOver={(e) => e.preventDefault()}
+                onDrop={(e) => actions.handleExternalDrop(e)}
+              >
                 곡을 추가하거나 링크를 드래그해 오세요.
               </div>
             )}

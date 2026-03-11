@@ -1,4 +1,3 @@
-// auth.config.ts
 import Kakao from 'next-auth/providers/kakao'
 import type {NextAuthConfig} from 'next-auth'
 

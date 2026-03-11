@@ -170,34 +170,40 @@ export function useModalLogic({
     e.stopPropagation()
 
     const url = e.dataTransfer.getData('text')
+
+    // 1. 내부 순서 변경인지 먼저 확인 (내부 드래그 중이면 draggedItemIndex가 있음)
+    if (draggedItemIndex !== null) {
+      if (draggedItemIndex === targetIndex) {
+        setDraggedItemIndex(null)
+        return
+      }
+
+      const newSongs = [...playlist.songs]
+      const [draggedItem] = newSongs.splice(draggedItemIndex, 1)
+      newSongs.splice(targetIndex, 0, draggedItem)
+
+      const songsNewOrder = newSongs.map((song, index) => ({
+        ...song,
+        order: index,
+      }))
+
+      updatePlaylist({songs: songsNewOrder}, playlist.id)
+      setDraggedItemIndex(null)
+
+      try {
+        const {updateSongOrderAction} = await import('../actions')
+        await updateSongOrderAction(
+          songsNewOrder.map((s) => ({id: s.id, order: s.order}))
+        )
+      } catch (error) {
+        console.error(error)
+      }
+      return // 내부 변경 완료 후 종료
+    }
+
+    // 2. 내부 드래그가 아닐 때만 외부 URL 추가 로직 실행
     if (url && (url.includes('youtube.com') || url.includes('youtu.be'))) {
       await addNewSongByUrl(url)
-      return
-    }
-
-    if (draggedItemIndex === null || draggedItemIndex === targetIndex) {
-      setDraggedItemIndex(null)
-      return
-    }
-
-    const newSongs = [...playlist.songs]
-    const [draggedItem] = newSongs.splice(draggedItemIndex, 1)
-    newSongs.splice(targetIndex, 0, draggedItem)
-    const songsNewOrder = newSongs.map((song, index) => ({
-      ...song,
-      order: index,
-    }))
-
-    updatePlaylist({songs: songsNewOrder}, playlist.id)
-    setDraggedItemIndex(null)
-
-    try {
-      const {updateSongOrderAction} = await import('../actions')
-      await updateSongOrderAction(
-        songsNewOrder.map((s) => ({id: s.id, order: s.order}))
-      )
-    } catch (error) {
-      console.error(error)
     }
   }
 
@@ -209,6 +215,7 @@ export function useModalLogic({
       searchQuery,
       searchResults,
       activeTab,
+      draggedItemIndex,
     },
     actions: {
       setTempTitle,

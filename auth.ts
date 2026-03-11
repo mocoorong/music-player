@@ -8,10 +8,17 @@ export const {handlers, auth, signIn, signOut} = NextAuth({
 
   ...authConfig,
   callbacks: {
-    async session({session, user}) {
-      if (session.user && user) {
-        session.user.id = user.id
-        session.user.name = user.name
+    async jwt({token, user}) {
+      // 로그인 시점에 user 객체가 있으면 token에 id를 저장
+      if (user) {
+        token.id = user.id
+      }
+      return token
+    },
+    async session({session, token}) {
+      // token에 저장된 id를 세션으로 옮김
+      if (session.user && token.id) {
+        session.user.id = token.id as string
       }
       return session
     },

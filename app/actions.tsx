@@ -6,6 +6,7 @@ import {auth} from '../auth'
 
 export async function addPlaylistAction(title: string) {
   const session = await auth()
+
   const userId = session?.user?.id
 
   if (!userId) {
@@ -14,11 +15,8 @@ export async function addPlaylistAction(title: string) {
   try {
     const newPlaylist = await db.playlist.create({
       data: {
-        id: crypto.randomUUID(),
         title: title,
-        user: {
-          connect: {id: userId},
-        },
+        userId: userId,
       },
       include: {
         songs: true,

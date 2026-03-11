@@ -40,7 +40,6 @@ export function useModalLogic({
   const [activeTab, setActiveTab] = useState<'search' | 'url'>('search')
   const [draggedItemIndex, setDraggedItemIndex] = useState<number | null>(null)
 
-  // ESC 키 이벤트
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
@@ -52,7 +51,6 @@ export function useModalLogic({
     return () => window.removeEventListener('keydown', handleKeyDown)
   }, [isOpen, searchResults, onClose])
 
-  // 플레이리스트 변경 시 제목 동기화
   useEffect(() => {
     setTempTitle(playlist.title)
   }, [playlist.id, playlist.title])
@@ -102,7 +100,6 @@ export function useModalLogic({
               : p
           )
         )
-        setYoutubeUrl('')
         return true
       }
     } catch {
@@ -154,16 +151,33 @@ export function useModalLogic({
   const onDragStart = (e: React.DragEvent, index: number) => {
     setDraggedItemIndex(index)
     e.dataTransfer.effectAllowed = 'move'
+
+    const dragTarget = (e.target as HTMLElement).closest('.song-item')
+    if (dragTarget) e.dataTransfer.setDragImage(dragTarget, 20, 20)
+  }
+
+  const handleExternalDrop = async (e: React.DragEvent) => {
+    e.preventDefault()
+    const url = e.dataTransfer.getData('text')
+    if (url.includes('youtube.com') || url.includes('youtu.be')) {
+      await addNewSongByUrl(url)
+    }
   }
 
   const onDrop = async (e: React.DragEvent, targetIndex: number) => {
     e.preventDefault()
+    e.stopPropagation()
+
     const url = e.dataTransfer.getData('text')
     if (url && (url.includes('youtube.com') || url.includes('youtu.be'))) {
       await addNewSongByUrl(url)
       return
     }
-    if (draggedItemIndex === null || draggedItemIndex === targetIndex) return
+
+    if (draggedItemIndex === null || draggedItemIndex === targetIndex) {
+      setDraggedItemIndex(null)
+      return
+    }
 
     const newSongs = [...playlist.songs]
     const [draggedItem] = newSongs.splice(draggedItemIndex, 1)
@@ -209,6 +223,7 @@ export function useModalLogic({
       deleteSong,
       onDragStart,
       onDrop,
+      handleExternalDrop,
     },
   }
 }

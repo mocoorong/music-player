@@ -717,9 +717,7 @@ body {
   gap: 20px;
 }
 
-.timer-btn,
-.autoplay-toggle,
-.backup-main-btn {
+.icon-menu-point button {
   width: 44px;
   height: 44px;
   border: none;

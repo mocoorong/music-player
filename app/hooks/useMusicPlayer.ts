@@ -19,8 +19,6 @@ export function useMusicPlayer(initialPlaylists: Playlist[]) {
   const [openMenu, setOpenMenu] = useState<string | null>(null)
   const [isLoading, setIsLoading] = useState(false)
   const [loadingText, setLoadingText] = useState('')
-  const [isShuffle, setIsShuffle] = useState(false)
-  const [originalSongs, setOriginalSongs] = useState<Song[]>([])
 
   const playerRef = useRef<any>(null)
   const stateRef = useRef({
@@ -171,34 +169,22 @@ export function useMusicPlayer(initialPlaylists: Playlist[]) {
     )
   }
 
-  const toggleShuffle = () => {
-    // 현재 재생 중인 플레이리스트를 찾음
-    const currentList = playlists.find((p) => p.id === playingPlaylistId)
-    if (!currentList) return
+  const shufflePlaylist = (targetPlaylistId: string) => {
+    const currentList = playlists.find((p) => p.id === targetPlaylistId)
+    if (!currentList || currentList.songs.length === 0) return
 
-    if (!isShuffle) {
-      // 셔플 활성화: 현재 곡 목록 저장 후 섞기
-      setOriginalSongs([...currentList.songs])
+    // 1. 무작위 섞기
+    const shuffled = [...currentList.songs].sort(() => Math.random() - 0.5)
 
-      const shuffled = [...currentList.songs].sort(() => Math.random() - 0.5)
-
-      // 현재 재생 중인 곡이 있다면 맨 앞으로 유지하여 흐름 방지
-      if (currentSong) {
-        const filtered = shuffled.filter((s) => s.id !== currentSong.id)
-        const newList = [currentSong, ...filtered]
-        updatePlaylist({songs: newList}, playingPlaylistId)
-      } else {
-        updatePlaylist({songs: shuffled}, playingPlaylistId)
-      }
+    // 2. 현재 재생 중인 플리라면 듣고 있는 곡을 맨 앞으로 (재생 끊김 방지)
+    if (playingPlaylistId === targetPlaylistId && currentSong) {
+      const filtered = shuffled.filter((s) => s.id !== currentSong.id)
+      updatePlaylist({songs: [currentSong, ...filtered]}, targetPlaylistId)
     } else {
-      // 셔플 비활성화: 저장해둔 원본 목록으로 복구
-      if (originalSongs.length > 0) {
-        updatePlaylist({songs: originalSongs}, playingPlaylistId)
-      }
+      // 3. 보고만 있는 플리라면 전체 다 섞기
+      updatePlaylist({songs: shuffled}, targetPlaylistId)
     }
-    setIsShuffle(!isShuffle)
   }
-
   return {
     state: {
       play,
@@ -213,7 +199,6 @@ export function useMusicPlayer(initialPlaylists: Playlist[]) {
       openMenu,
       isLoading,
       loadingText,
-      isShuffle,
     },
     actions: {
       setPlay,
@@ -232,7 +217,7 @@ export function useMusicPlayer(initialPlaylists: Playlist[]) {
       addPlaylist,
       updatePlaylist,
       playSpecificSong,
-      toggleShuffle,
+      shufflePlaylist,
     },
     playerRef,
   }

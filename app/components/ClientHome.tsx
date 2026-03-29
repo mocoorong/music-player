@@ -257,8 +257,8 @@ export default function ClientHome({initialPlaylists}: Props) {
       <div className="icon-container" ref={containerRef}>
         <div className="icon-menu-point">
           <button
-            className={`shuffle-btn ${state.isShuffle ? 'active' : ''}`}
-            onClick={actions.toggleShuffle}
+            className="shuffle-btn"
+            onClick={() => center && actions.shufflePlaylist(center.id)}
           >
             🔀
           </button>

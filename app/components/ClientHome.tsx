@@ -256,112 +256,106 @@ export default function ClientHome({initialPlaylists}: Props) {
       {/* Bottom Icons Section */}
       <div className="icon-container" ref={containerRef}>
         <div className="icon-menu-point">
-          <div className="icon-wrapper">
-            <button
-              className={`autoplay-toggle ${state.isAutoPlay ? 'on' : 'off'}`}
-              onClick={() =>
-                actions.setOpenMenu((prev) =>
-                  prev === 'autoplay' ? null : 'autoplay'
-                )
-              }
-            >
-              🔁
-            </button>
-            <div
-              className={`setting-menu ${state.openMenu === 'autoplay' ? 'is-open' : ''}`}
-            >
-              <p className="menu-title">재생 모드 설정</p>
-              <div className="menu-options">
-                <button
-                  className={!state.isAutoPlay ? 'active' : ''}
-                  onClick={() => actions.setIsAutoPlay(false)}
-                >
-                  현재 리스트 반복
-                </button>
-                <button
-                  className={state.isAutoPlay ? 'active' : ''}
-                  onClick={() => actions.setIsAutoPlay(true)}
-                >
-                  모든 리스트 재생
-                </button>
-              </div>
+          <button
+            className={`shuffle-btn ${state.isShuffle ? 'active' : ''}`}
+            onClick={actions.toggleShuffle}
+          >
+            🔀
+          </button>
+
+          <button
+            className={`autoplay-toggle ${state.isAutoPlay ? 'on' : 'off'}`}
+            onClick={() =>
+              actions.setOpenMenu((prev) =>
+                prev === 'autoplay' ? null : 'autoplay'
+              )
+            }
+          >
+            🔁
+          </button>
+          <div
+            className={`setting-menu ${state.openMenu === 'autoplay' ? 'is-open' : ''}`}
+          >
+            <p className="menu-title">재생 모드 설정</p>
+            <div className="menu-options">
+              <button
+                className={!state.isAutoPlay ? 'active' : ''}
+                onClick={() => actions.setIsAutoPlay(false)}
+              >
+                현재 리스트 반복
+              </button>
+              <button
+                className={state.isAutoPlay ? 'active' : ''}
+                onClick={() => actions.setIsAutoPlay(true)}
+              >
+                모든 리스트 재생
+              </button>
             </div>
           </div>
 
-          <div className="icon-wrapper">
-            <button
-              className={`timer-btn ${state.sleepTime !== null ? 'active' : ''}`}
-              onClick={() =>
-                actions.setOpenMenu((prev) =>
-                  prev === 'timer' ? null : 'timer'
-                )
-              }
-            >
-              ⌛
-            </button>
-            <div
-              className={`setting-menu ${state.openMenu === 'timer' ? 'is-open' : ''}`}
-            >
-              <p className="menu-title">수면 타이머 설정</p>
-              {state.sleepTime === null ? (
-                <div className="menu-options">
-                  {[15, 30, 60, 120].map((m) => (
-                    <button
-                      key={m}
-                      onClick={() => actions.setSleepTime(m * 60)}
-                    >
-                      {m === 60 ? '1시간' : m === 120 ? '2시간' : `${m}분`}
-                    </button>
-                  ))}
-                </div>
-              ) : (
-                <div className="menu-active">
-                  <div className="remaining-time">{`${Math.floor(state.sleepTime / 60)}:${String(state.sleepTime % 60).padStart(2, '0')}`}</div>
-                  <button
-                    className="cancel-btn"
-                    onClick={() => actions.setSleepTime(null)}
-                  >
-                    타이머 취소
+          <button
+            className={`timer-btn ${state.sleepTime !== null ? 'active' : ''}`}
+            onClick={() =>
+              actions.setOpenMenu((prev) => (prev === 'timer' ? null : 'timer'))
+            }
+          >
+            ⌛
+          </button>
+          <div
+            className={`setting-menu ${state.openMenu === 'timer' ? 'is-open' : ''}`}
+          >
+            <p className="menu-title">수면 타이머 설정</p>
+            {state.sleepTime === null ? (
+              <div className="menu-options">
+                {[15, 30, 60, 120].map((m) => (
+                  <button key={m} onClick={() => actions.setSleepTime(m * 60)}>
+                    {m === 60 ? '1시간' : m === 120 ? '2시간' : `${m}분`}
                   </button>
-                </div>
-              )}
-            </div>
+                ))}
+              </div>
+            ) : (
+              <div className="menu-active">
+                <div className="remaining-time">{`${Math.floor(state.sleepTime / 60)}:${String(state.sleepTime % 60).padStart(2, '0')}`}</div>
+                <button
+                  className="cancel-btn"
+                  onClick={() => actions.setSleepTime(null)}
+                >
+                  타이머 취소
+                </button>
+              </div>
+            )}
           </div>
 
-          <div className="icon-wrapper">
-            <button
-              className="backup-main-btn"
-              onClick={() =>
-                actions.setOpenMenu((prev) =>
-                  prev === 'backup' ? null : 'backup'
-                )
-              }
-            >
-              💾
-            </button>
-            <div
-              className={`setting-menu ${state.openMenu === 'backup' ? 'is-open' : ''}`}
-            >
-              <div className="menu-title">
-                <p>데이터 관리</p>
-              </div>
-              <div className="menu-options">
-                <input
-                  type="file"
-                  accept=".json"
-                  id="json-upload"
-                  style={{display: 'none'}}
-                  onChange={handleFileUpload}
-                />
-                <button
-                  onClick={() =>
-                    document.getElementById('json-upload')?.click()
-                  }
-                >
-                  플레이리스트 적용하기
-                </button>
-                <button onClick={exportToJson}>플레이리스트 공유하기</button>
-              </div>
+          <button
+            className="backup-main-btn"
+            onClick={() =>
+              actions.setOpenMenu((prev) =>
+                prev === 'backup' ? null : 'backup'
+              )
+            }
+          >
+            💾
+          </button>
+          <div
+            className={`setting-menu ${state.openMenu === 'backup' ? 'is-open' : ''}`}
+          >
+            <div className="menu-title">
+              <p>데이터 관리</p>
+            </div>
+            <div className="menu-options">
+              <input
+                type="file"
+                accept=".json"
+                id="json-upload"
+                style={{display: 'none'}}
+                onChange={handleFileUpload}
+              />
+              <button
+                onClick={() => document.getElementById('json-upload')?.click()}
+              >
+                플레이리스트 적용하기
+              </button>
+              <button onClick={exportToJson}>플레이리스트 공유하기</button>
             </div>
           </div>
         </div>

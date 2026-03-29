@@ -184,7 +184,7 @@ export default function Modal(props: ModalProps) {
               </div>
             )}
 
-            {playlist.songs.map((song, i) => (
+            {state.filteredSongs.map((song, i) => (
               <div
                 key={song.id}
                 id={`song-${song.id}`}

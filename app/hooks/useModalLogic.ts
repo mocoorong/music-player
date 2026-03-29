@@ -206,7 +206,9 @@ export function useModalLogic({
       await addNewSongByUrl(url)
     }
   }
-
+  const filteredSongs = playlist.songs.filter((song) =>
+    song.title.toLowerCase().includes(searchQuery.toLowerCase())
+  )
   return {
     state: {
       tempTitle,
@@ -216,6 +218,7 @@ export function useModalLogic({
       searchResults,
       activeTab,
       draggedItemIndex,
+      filteredSongs,
     },
     actions: {
       setTempTitle,

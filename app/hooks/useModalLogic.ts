@@ -2,7 +2,7 @@
 
 import {useState, useEffect} from 'react'
 import {Song, Playlist} from '../components/ClientHome'
-import {addSong, deleteSongAction} from '../actions'
+import {addSong, deleteSongAction, updatePlaylistTitleAction} from '../actions'
 
 interface UseModalLogicProps {
   playlist: Playlist
@@ -62,10 +62,23 @@ export function useModalLogic({
     return match && match[7].length === 11 ? match[7] : ''
   }
 
-  const handleTitleUpdate = () => {
+  const handleTitleUpdate = async () => {
     const newTitle = tempTitle.trim() || '제목 없음'
+
     updatePlaylist({title: newTitle}, playlist.id)
     setIsEditingTitle(false)
+
+    try {
+      const result = await updatePlaylistTitleAction(playlist.id, newTitle)
+      if (!result.success) {
+        alert('서버 저장에 실패했습니다: ' + result.error)
+
+        setTempTitle(playlist.title)
+        updatePlaylist({title: playlist.title}, playlist.id)
+      }
+    } catch (error) {
+      console.error(error)
+    }
   }
 
   const handleSearch = async () => {
@@ -171,7 +184,6 @@ export function useModalLogic({
 
     const url = e.dataTransfer.getData('text')
 
-    // 1. 내부 순서 변경인지 먼저 확인 (내부 드래그 중이면 draggedItemIndex가 있음)
     if (draggedItemIndex !== null) {
       if (draggedItemIndex === targetIndex) {
         setDraggedItemIndex(null)
@@ -198,10 +210,9 @@ export function useModalLogic({
       } catch (error) {
         console.error(error)
       }
-      return // 내부 변경 완료 후 종료
+      return
     }
 
-    // 2. 내부 드래그가 아닐 때만 외부 URL 추가 로직 실행
     if (url && (url.includes('youtube.com') || url.includes('youtu.be'))) {
       await addNewSongByUrl(url)
     }

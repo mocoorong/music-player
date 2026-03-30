@@ -32,7 +32,6 @@ export function useMusicPlayer(initialPlaylists: Playlist[]) {
     stateRef.current = {playlists, playingPlaylistId, currentSong, isAutoPlay}
   }, [playlists, playingPlaylistId, currentSong, isAutoPlay])
 
-  // 유튜브 API 초기화 및 타이머 로직 (기존과 동일)
   useEffect(() => {
     if (!(window as any).YT) {
       const tag = document.createElement('script')
@@ -69,7 +68,6 @@ export function useMusicPlayer(initialPlaylists: Playlist[]) {
       play ? playerRef.current.playVideo() : playerRef.current.pauseVideo()
   }, [play])
 
-  // 핸들러 함수들 (기존 로직 그대로)
   const extractVideoId = (url: string) => {
     const regExp =
       /^.*((youtu.be\/)|(v\/)|(\/u\/\w\/)|(embed\/)|(watch\?))\??v?=?([^#&?]*).*/
@@ -173,15 +171,12 @@ export function useMusicPlayer(initialPlaylists: Playlist[]) {
     const currentList = playlists.find((p) => p.id === targetPlaylistId)
     if (!currentList || currentList.songs.length === 0) return
 
-    // 1. 무작위 섞기
     const shuffled = [...currentList.songs].sort(() => Math.random() - 0.5)
 
-    // 2. 현재 재생 중인 플리라면 듣고 있는 곡을 맨 앞으로 (재생 끊김 방지)
     if (playingPlaylistId === targetPlaylistId && currentSong) {
       const filtered = shuffled.filter((s) => s.id !== currentSong.id)
       updatePlaylist({songs: [currentSong, ...filtered]}, targetPlaylistId)
     } else {
-      // 3. 보고만 있는 플리라면 전체 다 섞기
       updatePlaylist({songs: shuffled}, targetPlaylistId)
     }
   }

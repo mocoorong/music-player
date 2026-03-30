@@ -61,7 +61,7 @@ export async function deletePlaylistAction(id: string) {
   }
 }
 
-// 3. 노래 추가 (보안 강화)
+// 3. 노래 추가
 export async function addSong(
   playlistId: string,
   title: string,
@@ -95,14 +95,13 @@ export async function addSong(
   }
 }
 
-// 4. 노래 삭제 (보안 강화)
+// 4. 노래 삭제
 export async function deleteSongAction(songId: string) {
   try {
     const session = await auth()
     const userId = session?.user?.id
     if (!userId) return {success: false, error: '로그인이 필요합니다.'}
 
-    // 노래가 속한 플레이리스트의 주인이 나인지 확인
     const song = await db.song.findFirst({
       where: {
         id: songId,
@@ -121,12 +120,11 @@ export async function deleteSongAction(songId: string) {
   }
 }
 
-// 5. 노래 대량 추가 (보안 강화)
+// 5. 노래 대량 추가
 export async function addSongBulkAction(playlistId: string, songs: any[]) {
   try {
-    await validatePlaylistOwner(playlistId) // 소유권 확인
+    await validatePlaylistOwner(playlistId)
 
-    // createMany를 사용하여 성능 최적화 (Prisma 권장)
     await db.song.createMany({
       data: songs.map((song, i) => ({
         playlistId,
@@ -155,7 +153,6 @@ export async function updateSongOrderAction(
     const userId = session?.user?.id
     if (!userId) return {success: false}
 
-    // 첫 번째 곡을 통해 해당 플레이리스트 소유권 확인
     const firstSong = await db.song.findFirst({
       where: {id: songs[0].id, playlist: {userId}},
     })
@@ -172,5 +169,26 @@ export async function updateSongOrderAction(
     return {success: true}
   } catch (error) {
     return {success: false}
+  }
+}
+// 7. 플레이리스트 제목 수정
+export async function updatePlaylistTitleAction(
+  playlistId: string,
+  newTitle: string
+) {
+  try {
+    await validatePlaylistOwner(playlistId)
+
+    const updatedPlaylist = await db.playlist.update({
+      where: {id: playlistId},
+      data: {title: newTitle},
+    })
+
+    revalidatePath('/')
+
+    return {success: true, data: updatedPlaylist}
+  } catch (error: any) {
+    console.error('제목 수정 실패:', error)
+    return {success: false, error: error.message}
   }
 }

@@ -9,7 +9,7 @@ interface MusicVarProps {
     handleSkip: (direction: number) => void
     setCurrentSong: (song: Song | null) => void
     setPlay: (play: boolean) => void
-    play: boolean // 이제 부모에서 넘겨주므로 인식될 것입니다.
+    play: boolean
     playerRef: any
   }
   scrollToCurrentSong: () => void

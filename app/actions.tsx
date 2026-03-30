@@ -3,68 +3,65 @@
 import {db} from '../lib/db'
 import {revalidatePath} from 'next/cache'
 import {auth} from '../auth'
-/**
- * 1. 플레이리스트 추가
- * 새로운 플레이리스트를 생성하고 DB에 저장합니다.
- */
+
+async function validatePlaylistOwner(playlistId: string) {
+  const session = await auth()
+  const userId = session?.user?.id
+
+  if (!userId) throw new Error('로그인이 필요합니다.')
+
+  const playlist = await db.playlist.findFirst({
+    where: {
+      id: playlistId,
+      userId: userId,
+    },
+  })
+
+  if (!playlist)
+    throw new Error('권한이 없거나 플레이리스트를 찾을 수 없습니다.')
+
+  return userId
+}
+
+// 1. 플레이리스트 추가
 export async function addPlaylistAction(title: string) {
   const session = await auth()
   const userId = session?.user?.id
 
-  // 2. 로그인이 안 되어 있으면 중단
-  if (!userId) {
-    return {success: false, error: '로그인이 필요합니다.'}
-  }
+  if (!userId) return {success: false, error: '로그인이 필요합니다.'}
+
   try {
     const newPlaylist = await db.playlist.create({
       data: {
-        id: crypto.randomUUID(),
         title: title,
-        user: {
-          connect: {id: userId}, // 또는 session.user.id 등
-        },
+        userId: userId,
       },
-      include: {
-        songs: true, // 빈 노래 배열을 포함하여 반환
-      },
+      include: {songs: true},
     })
-
-    // 페이지 데이터 갱신 (새로고침 없이 화면 업데이트)
     revalidatePath('/')
     return {success: true, data: newPlaylist}
   } catch (error) {
-    console.error('플레이리스트 추가 실패:', error)
-    return {success: false, error: '플레이리스트를 생성할 수 없습니다.'}
+    return {success: false, error: '플레이리스트 생성 실패'}
   }
 }
 
-/**
- * 2. 플레이리스트 삭제
- * 특정 플레이리스트와 그 안에 포함된 모든 노래를 DB에서 삭제합니다.
- */
+// 2. 플레이리스트 삭제
 export async function deletePlaylistAction(id: string) {
-  const session = await auth()
-  if (!session?.user?.id) return {success: false}
   try {
+    const userId = await validatePlaylistOwner(id) // 소유권 확인
+
     await db.playlist.delete({
-      where: {
-        id: id,
-        userId: session.user.id, // '내 아이디가 작성자인 것만' 삭제하라는 조건 추가
-      },
+      where: {id, userId},
     })
 
     revalidatePath('/')
     return {success: true}
-  } catch (error) {
-    console.error('플레이리스트 삭제 실패:', error)
-    return {success: false, error: '삭제 중 오류가 발생했습니다.'}
+  } catch (error: any) {
+    return {success: false, error: error.message}
   }
 }
 
-/**
- * 3. 노래 추가
- * 특정 플레이리스트 내에 새로운 노래 정보를 저장합니다.
- */
+// 3. 노래 추가
 export async function addSong(
   playlistId: string,
   title: string,
@@ -72,74 +69,95 @@ export async function addSong(
   thumbnail: string
 ) {
   try {
+    await validatePlaylistOwner(playlistId) // 소유권 확인
+
     const lastSong = await db.song.findFirst({
       where: {playlistId},
-      orderBy: {order: 'desc'}, // 가장 큰 번호 찾기
+      orderBy: {order: 'desc'},
     })
     const nextOrder = lastSong ? lastSong.order + 1 : 0
 
     const newSong = await db.song.create({
       data: {
         id: crypto.randomUUID(),
-        title: title,
+        title,
         youtubeUrl: url,
-        thumbnail: thumbnail,
-        playlistId: playlistId,
+        thumbnail,
+        playlistId,
         order: nextOrder,
       },
     })
 
     revalidatePath('/')
     return {success: true, song: newSong}
-  } catch (error) {
-    console.error('노래 추가 실패:', error)
-    return {success: false, error: '노래를 저장할 수 없습니다.'}
+  } catch (error: any) {
+    return {success: false, error: error.message}
   }
 }
 
-/**
- * 4. 노래 삭제 (필요할 경우를 대비해 추가)
- * 플레이리스트 내의 특정 노래만 삭제합니다.
- */
+// 4. 노래 삭제
 export async function deleteSongAction(songId: string) {
   try {
-    await db.song.delete({
-      where: {id: songId},
+    const session = await auth()
+    const userId = session?.user?.id
+    if (!userId) return {success: false, error: '로그인이 필요합니다.'}
+
+    const song = await db.song.findFirst({
+      where: {
+        id: songId,
+        playlist: {userId: userId}, // Relation 필터를 이용한 소유권 체크
+      },
     })
+
+    if (!song) return {success: false, error: '삭제 권한이 없습니다.'}
+
+    await db.song.delete({where: {id: songId}})
 
     revalidatePath('/')
     return {success: true}
   } catch (error) {
-    console.error('노래 삭제 실패:', error)
     return {success: false}
   }
 }
 
-// 각 플레이리스트별 전체 노래 추가
+// 5. 노래 대량 추가
 export async function addSongBulkAction(playlistId: string, songs: any[]) {
   try {
-    for (let i = 0; i < songs.length; i++) {
-      const song = songs[i]
-      await db.song.create({
-        data: {
-          playlistId,
-          title: song.title,
-          youtubeUrl: song.youtubeUrl,
-          thumbnail: song.thumbnail,
-          order: i,
-        },
-      })
-    }
+    await validatePlaylistOwner(playlistId)
+
+    await db.song.createMany({
+      data: songs.map((song, i) => ({
+        playlistId,
+        title: song.title,
+        youtubeUrl: song.youtubeUrl,
+        thumbnail: song.thumbnail,
+        order: i,
+      })),
+    })
+
+    revalidatePath('/')
     return {success: true}
-  } catch (error) {
-    return {success: false}
+  } catch (error: any) {
+    return {success: false, error: error.message}
   }
 }
 
+// 6. 순서 업데이트 (보안 강화 - 첫 번째 곡 기준 검증)
 export async function updateSongOrderAction(
   songs: {id: string; order: number}[]
 ) {
+  if (songs.length === 0) return {success: true}
+
   try {
+    const session = await auth()
+    const userId = session?.user?.id
+    if (!userId) return {success: false}
+
+    const firstSong = await db.song.findFirst({
+      where: {id: songs[0].id, playlist: {userId}},
+    })
+    if (!firstSong) return {success: false, error: '수정 권한이 없습니다.'}
+
     await db.$transaction(
       songs.map((song) =>
         db.song.update({
@@ -150,7 +168,27 @@ export async function updateSongOrderAction(
     )
     return {success: true}
   } catch (error) {
-    console.error('순서 업데이트 에러:', error)
     return {success: false}
+  }
+}
+// 7. 플레이리스트 제목 수정
+export async function updatePlaylistTitleAction(
+  playlistId: string,
+  newTitle: string
+) {
+  try {
+    await validatePlaylistOwner(playlistId)
+
+    const updatedPlaylist = await db.playlist.update({
+      where: {id: playlistId},
+      data: {title: newTitle},
+    })
+
+    revalidatePath('/')
+
+    return {success: true, data: updatedPlaylist}
+  } catch (error: any) {
+    console.error('제목 수정 실패:', error)
+    return {success: false, error: error.message}
   }
 }

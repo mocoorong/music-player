@@ -1,4 +1,3 @@
-// app/page.tsx
 import {db} from '../lib/db'
 import ClientHome from './components/ClientHome'
 import {auth, signIn, signOut} from '../auth'

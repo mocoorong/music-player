@@ -1,41 +1,74 @@
-'use client'
+import {db} from '../lib/db'
+import ClientHome from './components/ClientHome'
+import {auth, signIn, signOut} from '../auth'
+import {revalidatePath} from 'next/cache' // 1. 여기에 추가!
 
-import {useState} from 'react'
-import './page.css'
-import PlaylistModal from './components/PlaylistModal'
+export default async function Home() {
+  const session = await auth()
 
-export default function () {
-  const [play, setPlay] = useState(false)
-  const [modal, setModal] = useState(false)
+  if (!session) {
+    return (
+      <div className="login-container">
+        <h1 className="login-title">뮤직 플레이어</h1>
+        <form
+          action={async () => {
+            'use server'
+            await signIn('kakao')
+          }}
+        >
+          <button className="kakao-login-btn">카카오로 시작하기</button>
+        </form>
+      </div>
+    )
+  }
+
+  // 플레이리스트 생성 함수
+  async function addPlaylist(title: string) {
+    'use server'
+    if (!session?.user?.id) return
+
+    await db.playlist.create({
+      data: {
+        title: title,
+        userId: session.user.id,
+      },
+    })
+
+    revalidatePath('/')
+  }
+
+  const initialPlaylists = await db.playlist.findMany({
+    where: {
+      userId: session.user.id,
+    },
+    include: {
+      songs: {
+        orderBy: {order: 'asc'},
+      },
+    },
+  })
 
   return (
-    <div className="main-bg">
-      {!modal && (
-        <div className="music-playlist-add" onClick={() => setModal(true)}>
-          <div className="plus-btn"></div>
-        </div>
-      )}
-      {modal && <PlaylistModal onClose={() => setModal(false)} />}
-      <div className="music-var">
-        <div className="music-var-title">노래 제목 들어갈 곳</div>
-        <div className="progress-container">
-          <div className="progress-bar"></div>
-        </div>
-        <audio id="audio" src="/music/sample.mp3"></audio>
-        <div className="control-btns">
-          <button>
-            <img src={'/img/main-prevBtn.png'}></img>
-          </button>
-          <button onClick={() => setPlay(!play)}>
-            <img
-              src={play ? '/img/main-pauseBtn.png' : '/img/main-playBtn.png'}
-            ></img>
-          </button>
-          <button>
-            <img src={'/img/main-nextBtn.png'}></img>
-          </button>
-        </div>
+    <>
+      <div className="user-info-bar">
+        <span className="user-name">{session.user?.name}님</span>
+
+        <div className="user-info-divider" />
+
+        <form
+          action={async () => {
+            'use server'
+            await signOut()
+          }}
+        >
+          <button className="logout-btn">로그아웃</button>
+        </form>
       </div>
-    </div>
+
+      <ClientHome
+        initialPlaylists={initialPlaylists}
+        addPlaylist={addPlaylist}
+      />
+    </>
   )
 }

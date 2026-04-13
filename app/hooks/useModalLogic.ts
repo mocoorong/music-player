@@ -83,11 +83,13 @@ export function useModalLogic({
 
   const handleSearch = async () => {
     if (!searchQuery.trim()) return
-    const API_KEY = process.env.NEXT_PUBLIC_YOUTUBE_API_KEY
-    const url = `https://www.googleapis.com/youtube/v3/search?part=snippet&maxResults=5&q=${encodeURIComponent(searchQuery)}&type=video&key=${API_KEY}`
+
     try {
-      const res = await fetch(url)
+      const res = await fetch(
+        `/api/youtube-search?q=${encodeURIComponent(searchQuery)}`
+      )
       const data = await res.json()
+
       if (data.items) setSearchResults(data.items)
     } catch (error) {
       console.error('검색 중 오류 발생:', error)

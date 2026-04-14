@@ -23,6 +23,20 @@ async function validatePlaylistOwner(playlistId: string) {
   return userId
 }
 
+function isValidYoutubeUrl(url: string) {
+  try {
+    const parsed = new URL(url)
+
+    return (
+      parsed.hostname === 'www.youtube.com' ||
+      parsed.hostname === 'youtube.com' ||
+      parsed.hostname === 'youtu.be'
+    )
+  } catch {
+    return false
+  }
+}
+
 // 1. 플레이리스트 추가
 export async function addPlaylistAction(title: string) {
   const session = await auth()
@@ -70,6 +84,10 @@ export async function addSong(
 ) {
   try {
     await validatePlaylistOwner(playlistId) // 소유권 확인
+
+    if (!isValidYoutubeUrl(url)) {
+      return {success: false, error: '유효하지 않은 URL'}
+    }
 
     const lastSong = await db.song.findFirst({
       where: {playlistId},
@@ -124,6 +142,10 @@ export async function deleteSongAction(songId: string) {
 export async function addSongBulkAction(playlistId: string, songs: any[]) {
   try {
     await validatePlaylistOwner(playlistId)
+
+    const validSongs = songs.filter((song) =>
+      isValidYoutubeUrl(song.youtubeUrl)
+    )
 
     await db.song.createMany({
       data: songs.map((song, i) => ({

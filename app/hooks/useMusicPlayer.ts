@@ -173,6 +173,8 @@ export function useMusicPlayer(initialPlaylists: Playlist[]) {
 
     const shuffled = [...currentList.songs].sort(() => Math.random() - 0.5)
 
+    ;(window as any).isShuffled = true
+
     if (playingPlaylistId === targetPlaylistId && currentSong) {
       const filtered = shuffled.filter((s) => s.id !== currentSong.id)
       updatePlaylist({songs: [currentSong, ...filtered]}, targetPlaylistId)

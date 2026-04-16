@@ -205,6 +205,8 @@ export function useModalLogic({
       setDraggedItemIndex(null)
 
       try {
+        if ((window as any).isShuffled) return
+
         const {updateSongOrderAction} = await import('../actions')
         await updateSongOrderAction(
           songsNewOrder.map((s) => ({id: s.id, order: s.order}))
@@ -212,6 +214,7 @@ export function useModalLogic({
       } catch (error) {
         console.error(error)
       }
+
       return
     }
 

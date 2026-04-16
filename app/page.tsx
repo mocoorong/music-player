@@ -18,6 +18,14 @@ export default async function Home() {
         >
           <button className="kakao-login-btn">카카오로 시작하기</button>
         </form>
+        <form
+          action={async () => {
+            'use server'
+            await signIn('google')
+          }}
+        >
+          <button className="google-login-btn">구글로 시작하기</button>
+        </form>
       </div>
     )
   }

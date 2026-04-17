@@ -3,6 +3,7 @@
 import {useState, useRef, useEffect} from 'react'
 import {addPlaylistAction, deletePlaylistAction} from '../actions'
 import {Song, Playlist} from '../components/ClientHome'
+import {usePlayerStore} from '../store/usePlayerStore'
 
 export function useMusicPlayer(initialPlaylists: Playlist[]) {
   const [play, setPlay] = useState(false)
@@ -19,6 +20,8 @@ export function useMusicPlayer(initialPlaylists: Playlist[]) {
   const [openMenu, setOpenMenu] = useState<string | null>(null)
   const [isLoading, setIsLoading] = useState(false)
   const [loadingText, setLoadingText] = useState('')
+
+  const {setIsShuffled} = usePlayerStore()
 
   const playerRef = useRef<any>(null)
   const stateRef = useRef({
@@ -173,7 +176,7 @@ export function useMusicPlayer(initialPlaylists: Playlist[]) {
 
     const shuffled = [...currentList.songs].sort(() => Math.random() - 0.5)
 
-    ;(window as any).isShuffled = true
+    setIsShuffled(true)
 
     if (playingPlaylistId === targetPlaylistId && currentSong) {
       const filtered = shuffled.filter((s) => s.id !== currentSong.id)

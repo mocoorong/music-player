@@ -3,6 +3,7 @@
 import {useState, useEffect} from 'react'
 import {Song, Playlist} from '../components/ClientHome'
 import {addSong, deleteSongAction, updatePlaylistTitleAction} from '../actions'
+import {usePlayerStore} from '../store/usePlayerStore'
 
 interface UseModalLogicProps {
   playlist: Playlist
@@ -39,6 +40,7 @@ export function useModalLogic({
   const [searchResults, setSearchResults] = useState<any[]>([])
   const [activeTab, setActiveTab] = useState<'search' | 'url'>('search')
   const [draggedItemIndex, setDraggedItemIndex] = useState<number | null>(null)
+  const {isShuffled} = usePlayerStore()
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -205,6 +207,8 @@ export function useModalLogic({
       setDraggedItemIndex(null)
 
       try {
+        if (isShuffled) return
+
         const {updateSongOrderAction} = await import('../actions')
         await updateSongOrderAction(
           songsNewOrder.map((s) => ({id: s.id, order: s.order}))
@@ -212,6 +216,7 @@ export function useModalLogic({
       } catch (error) {
         console.error(error)
       }
+
       return
     }
 

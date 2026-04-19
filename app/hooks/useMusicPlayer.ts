@@ -3,6 +3,7 @@
 import {useState, useRef, useEffect} from 'react'
 import {addPlaylistAction, deletePlaylistAction} from '../actions'
 import {Song, Playlist} from '../components/ClientHome'
+import {usePlayerStore} from '../store/usePlayerStore'
 
 export function useMusicPlayer(initialPlaylists: Playlist[]) {
   const [play, setPlay] = useState(false)
@@ -20,7 +21,9 @@ export function useMusicPlayer(initialPlaylists: Playlist[]) {
   const [isLoading, setIsLoading] = useState(false)
   const [loadingText, setLoadingText] = useState('')
 
-  const playerRef = useRef<any>(null)
+  const {setIsShuffled} = usePlayerStore()
+
+  const playerRef = useRef<YT.Player | null>(null)
   const stateRef = useRef({
     playlists,
     playingPlaylistId,
@@ -33,19 +36,22 @@ export function useMusicPlayer(initialPlaylists: Playlist[]) {
   }, [playlists, playingPlaylistId, currentSong, isAutoPlay])
 
   useEffect(() => {
-    if (!(window as any).YT) {
+    if (!window.YT) {
       const tag = document.createElement('script')
       tag.src = 'https://www.youtube.com/iframe_api'
       const firstScriptTag = document.getElementsByTagName('script')[0]
       firstScriptTag.parentNode?.insertBefore(tag, firstScriptTag)
     }
-    ;(window as any).onYouTubeIframeAPIReady = () => {
-      playerRef.current = new (window as any).YT.Player('yt-player', {
+    window.onYouTubeIframeAPIReady = () => {
+      playerRef.current = new window.YT.Player('yt-player', {
         height: '100%',
         width: '100%',
         videoId: '',
         playerVars: {autoplay: 1, rel: 0, controls: 1},
-        events: {onStateChange: (e: any) => e.data === 0 && handleSkip(1)},
+        events: {
+          onStateChange: (e: YT.OnStateChangeEvent) =>
+            e.data === 0 && handleSkip(1),
+        },
       })
     }
   }, [])
@@ -172,6 +178,8 @@ export function useMusicPlayer(initialPlaylists: Playlist[]) {
     if (!currentList || currentList.songs.length === 0) return
 
     const shuffled = [...currentList.songs].sort(() => Math.random() - 0.5)
+
+    setIsShuffled(true)
 
     if (playingPlaylistId === targetPlaylistId && currentSong) {
       const filtered = shuffled.filter((s) => s.id !== currentSong.id)

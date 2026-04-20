@@ -885,6 +885,7 @@ body {
 
 /* 카카오 로그인 버튼 전용 스타일 */
 .kakao-login-btn {
+  width: 220px;
   background-color: #fee500;
   color: #3c1e1e;
   padding: 14px 40px;
@@ -901,5 +902,26 @@ body {
 
 .kakao-login-btn:hover {
   background-color: #fada0a;
+  transform: translateY(-2px);
+}
+
+.google-login-btn {
+  width: 220px;
+  margin-top: 20px;
+  background-color: white;
+  color: black;
+  padding: 14px 40px;
+  border-radius: 12px;
+  font-size: 16px;
+  font-weight: 700;
+  border: none;
+  cursor: pointer;
+  transition:
+    transform 0.2s,
+    background-color 0.2s;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+}
+
+.google-login-btn:hover {
   transform: translateY(-2px);
 }

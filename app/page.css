@@ -614,7 +614,7 @@ body {
 }
 .search-results-dropdown {
   position: absolute;
-  top: 55px;
+  top: 12.5%;
   right: 1.6%;
   width: 52.4%;
   background: #222;

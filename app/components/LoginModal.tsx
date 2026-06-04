@@ -1,7 +1,7 @@
 'use client'
 
 import {useState} from 'react'
-import {createId, googleLogin, kakaoLogin, passowrdLogin} from '../auth-action'
+import {createId, googleLogin, kakaoLogin, passwordLogin} from '../auth-action'
 
 export default function LoginModal() {
   const [modal, setModal] = useState<'login' | 'signup' | null>(null)
@@ -32,7 +32,7 @@ export default function LoginModal() {
               x
             </button>
             <h2>로그인</h2>
-            <form action={passowrdLogin}>
+            <form action={passwordLogin}>
               <input name="email" type="email" placeholder="이메일" required />
               <input
                 name="password"

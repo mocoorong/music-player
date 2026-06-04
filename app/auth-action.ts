@@ -46,7 +46,7 @@ export async function createId(formData: FormData) {
   })
 }
 
-export async function passowrdLogin(formData: FormData) {
+export async function passwordLogin(formData: FormData) {
   const email = String(formData.get('email') ?? '')
     .trim()
     .toLowerCase()

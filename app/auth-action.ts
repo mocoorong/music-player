@@ -22,7 +22,9 @@ export async function createId(formData: FormData) {
   if (!email || !password) {
     throw new Error('이메일과 비밀번호를 입력해주세요.')
   }
-
+  if (password.length < 6) {
+    throw new Error('비밀번호는 6자 이상이어야 합니다.')
+  }
   const userEmail = await db.user.findUnique({
     where: {email},
   })

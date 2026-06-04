@@ -1,59 +1,16 @@
 import {db} from '../lib/db'
 import ClientHome from './components/ClientHome'
-import {auth, signIn, signOut} from '../auth'
+import {auth, signOut} from '../auth'
 import {revalidatePath} from 'next/cache'
-import {createId, passowrdLogin} from './auth-action'
+import LoginModal from './components/LoginModal'
 
 export default async function Home() {
   const session = await auth()
 
   if (!session) {
-    return (
-      <div className="login-container">
-        <h1 className="login-title">뮤직 플레이어</h1>
-        <form action={passowrdLogin}>
-          <input name="email" type="email" placeholder="이메일" required />
-          <input
-            name="password"
-            type="password"
-            placeholder="비밀번호"
-            required
-          />
-          <button type="submit">이메일로 로그인</button>
-        </form>
-
-        <form action={createId}>
-          <input name="name" type="text" placeholder="이름" />
-          <input name="email" type="email" placeholder="이메일" required />
-          <input
-            name="password"
-            type="password"
-            placeholder="비밀번호"
-            required
-          />
-          <button type="submit">회원가입</button>
-        </form>
-        <form
-          action={async () => {
-            'use server'
-            await signIn('kakao')
-          }}
-        >
-          <button className="kakao-login-btn">카카오로 시작하기</button>
-        </form>
-        <form
-          action={async () => {
-            'use server'
-            await signIn('google')
-          }}
-        >
-          <button className="google-login-btn">구글로 시작하기</button>
-        </form>
-      </div>
-    )
+    return <LoginModal />
   }
 
-  // 플레이리스트 생성 함수
   async function addPlaylist(title: string) {
     'use server'
     if (!session?.user?.id) return

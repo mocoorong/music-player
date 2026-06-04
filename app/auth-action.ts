@@ -4,6 +4,14 @@ import bcrypt from 'bcryptjs'
 import {signIn} from '../auth'
 import {db} from '../lib/db'
 
+export async function kakaoLogin() {
+  await signIn('kakao')
+}
+
+export async function googleLogin() {
+  await signIn('google')
+}
+
 export async function createId(formData: FormData) {
   const name = String(formData.get('name') ?? '').trim()
   const email = String(formData.get('email') ?? '')

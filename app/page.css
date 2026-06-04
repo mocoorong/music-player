@@ -883,6 +883,86 @@ body {
   letter-spacing: -0.05rem;
 }
 
+.auth-primary-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.auth-modal-bg {
+  position: fixed;
+  inset: 0;
+  z-index: 10000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.62);
+  backdrop-filter: blur(6px);
+}
+
+.auth-modal {
+  position: relative;
+  width: min(360px, calc(100vw - 40px));
+  padding: 32px 28px 28px;
+  border-radius: 14px;
+  background: #181818;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.6);
+  box-sizing: border-box;
+}
+
+.auth-modal h2 {
+  margin: 0 0 20px;
+  font-size: 24px;
+  text-align: center;
+}
+
+.auth-modal form {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.auth-modal input {
+  width: 100%;
+  padding: 13px 14px;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 9px;
+  background: #252525;
+  color: #fff;
+  font-size: 14px;
+  box-sizing: border-box;
+}
+
+.auth-modal input::placeholder {
+  color: rgba(255, 255, 255, 0.46);
+}
+
+.auth-modal form button {
+  margin-top: 6px;
+  padding: 13px;
+  border: none;
+  border-radius: 10px;
+  background: #fff;
+  color: #111;
+  cursor: pointer;
+  font-size: 15px;
+  font-weight: 800;
+}
+
+.auth-modal-close {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  width: 28px;
+  height: 28px;
+  border: none;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.08);
+  color: #fff;
+  cursor: pointer;
+}
+
 /* 카카오 로그인 버튼 전용 스타일 */
 .kakao-login-btn {
   width: 220px;
@@ -900,6 +980,34 @@ body {
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
 }
 
+.email-auth-btn,
+.kakao-login-btn,
+.google-login-btn {
+  width: 220px;
+  min-height: 48px;
+  box-sizing: border-box;
+}
+
+.email-auth-btn {
+  background: rgba(255, 255, 255, 0.08);
+  color: #fff;
+  padding: 14px 40px;
+  border-radius: 12px;
+  font-size: 16px;
+  font-weight: 700;
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  cursor: pointer;
+  transition:
+    transform 0.2s,
+    background-color 0.2s;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+}
+
+.email-auth-btn:hover {
+  background: rgba(255, 255, 255, 0.14);
+  transform: translateY(-2px);
+}
+
 .kakao-login-btn:hover {
   background-color: #fada0a;
   transform: translateY(-2px);
@@ -907,7 +1015,6 @@ body {
 
 .google-login-btn {
   width: 220px;
-  margin-top: 20px;
   background-color: white;
   color: black;
   padding: 14px 40px;

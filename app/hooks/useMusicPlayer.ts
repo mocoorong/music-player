@@ -24,6 +24,7 @@ export function useMusicPlayer(initialPlaylists: Playlist[]) {
   const {setIsShuffled} = usePlayerStore()
 
   const playerRef = useRef<YT.Player | null>(null)
+  const pendingSongRef = useRef<Song | null>(null)
   const stateRef = useRef({
     playlists,
     playingPlaylistId,
@@ -36,23 +37,39 @@ export function useMusicPlayer(initialPlaylists: Playlist[]) {
   }, [playlists, playingPlaylistId, currentSong, isAutoPlay])
 
   useEffect(() => {
-    if (!window.YT) {
-      const tag = document.createElement('script')
-      tag.src = 'https://www.youtube.com/iframe_api'
-      const firstScriptTag = document.getElementsByTagName('script')[0]
-      firstScriptTag.parentNode?.insertBefore(tag, firstScriptTag)
-    }
-    window.onYouTubeIframeAPIReady = () => {
+    const createPlayer = () => {
+      if (playerRef.current || !window.YT?.Player) return
+
       playerRef.current = new window.YT.Player('yt-player', {
         height: '100%',
         width: '100%',
         videoId: '',
         playerVars: {autoplay: 1, rel: 0, controls: 1},
         events: {
+          onReady: () => {
+            const pendingSong = pendingSongRef.current
+            if (!pendingSong) return
+
+            pendingSongRef.current = null
+            playSpecificSong(pendingSong)
+          },
           onStateChange: (e: YT.OnStateChangeEvent) =>
             e.data === 0 && handleSkip(1),
         },
       })
+    }
+
+    if (window.YT?.Player) {
+      createPlayer()
+    } else {
+      window.onYouTubeIframeAPIReady = createPlayer
+    }
+
+    if (!document.querySelector('script[src="https://www.youtube.com/iframe_api"]')) {
+      const tag = document.createElement('script')
+      tag.src = 'https://www.youtube.com/iframe_api'
+      const firstScriptTag = document.getElementsByTagName('script')[0]
+      firstScriptTag.parentNode?.insertBefore(tag, firstScriptTag)
     }
   }, [])
 
@@ -83,9 +100,16 @@ export function useMusicPlayer(initialPlaylists: Playlist[]) {
 
   const playSpecificSong = (song: Song) => {
     const videoId = extractVideoId(song.youtubeUrl)
-    if (!videoId || !playerRef.current) return
+    if (!videoId) return
+
     setCurrentSong(song)
     setPlay(true)
+
+    if (!playerRef.current) {
+      pendingSongRef.current = song
+      return
+    }
+
     playerRef.current.loadVideoById(videoId)
   }
 

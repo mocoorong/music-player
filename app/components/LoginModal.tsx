@@ -5,6 +5,7 @@ import {createId, googleLogin, kakaoLogin, passwordLogin} from '../auth-action'
 
 export default function LoginModal() {
   const [modal, setModal] = useState<'login' | 'signup' | null>(null)
+  const [password, setPassword] = useState('')
 
   return (
     <div className="login-container">
@@ -61,7 +62,13 @@ export default function LoginModal() {
                 type="password"
                 placeholder="비밀번호"
                 required
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                minLength={6}
               />
+              {password.length > 0 && password.length < 6 && (
+                <p>비밀번호는 6자 이상이어야 합니다.</p>
+              )}
               <button type="submit">가입하고 시작하기</button>
             </form>
           </div>

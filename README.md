@@ -41,6 +41,13 @@ https://music-player-ashen-rho.vercel.app/
 * 모달창 바깥 영역 클릭
   → 두 방법 모두 모달을 닫을 수 있습니다.
 
+## 1.0.1 업데이트 정보
+- 로그인/회원가입 기능 추가
+ 
+## 추후 업데이트 정보
+- 셔플 상태를 on/off로 변경
+- 다양한 뮤직플레이어 새로운 기능
+- ui/ux 개선
 
 # Music Player
 
@@ -130,5 +137,3 @@ YouTube API를 활용해 개인화된 음악 플레이리스트를 관리하는 
 - PostgreSQL (Supabase / Neon)
 - Auth.js (Kakao OAuth)
 - Vercel
-
-# Contributors를 보면 아시겠지만 모든 기획과 코드 개발은 혼자서 진행하였습니다. 

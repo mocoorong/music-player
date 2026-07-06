@@ -40,7 +40,8 @@ export function useModalLogic({
   const [searchResults, setSearchResults] = useState<any[]>([])
   const [activeTab, setActiveTab] = useState<'search' | 'url'>('search')
   const [draggedItemIndex, setDraggedItemIndex] = useState<number | null>(null)
-  const {isShuffled} = usePlayerStore()
+  const {originalOrders} = usePlayerStore()
+  const isShuffled = !!originalOrders[playlist.id]
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {

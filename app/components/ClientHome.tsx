@@ -5,6 +5,7 @@ import Modal from './Modal'
 import MusicVar from './MusicVar'
 import './../page.css'
 import {useMusicPlayer} from '../hooks/useMusicPlayer'
+import {usePlayerStore, playerRef} from '../store/usePlayerStore'
 import {addPlaylistAction} from '../actions'
 
 export type Song = {
@@ -21,23 +22,24 @@ interface Props {
 }
 
 export default function ClientHome({initialPlaylists}: Props) {
-  const {state, actions, playerRef} = useMusicPlayer(initialPlaylists)
+  useMusicPlayer(initialPlaylists)
+  const store = usePlayerStore()
   const containerRef = useRef<HTMLDivElement>(null)
 
   // 클릭 외 영역 닫기 로직
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
       if (
-        state.openMenu &&
+        store.openMenu &&
         containerRef.current &&
         !containerRef.current.contains(e.target as Node)
       ) {
-        actions.setOpenMenu(null)
+        store.setOpenMenu(null)
       }
     }
     document.addEventListener('mousedown', handleClickOutside)
     return () => document.removeEventListener('mousedown', handleClickOutside)
-  }, [state.openMenu])
+  }, [store.openMenu])
 
   // 파일 업로드 및 내보내기 로직 (UI와 밀접하여 내부에 유지하거나 별도 유틸화 가능)
   const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -48,8 +50,8 @@ export default function ClientHome({initialPlaylists}: Props) {
       try {
         const jsonData = JSON.parse(e.target?.result as string)
         alert('데이터 전송을 시작합니다.')
-        actions.setIsLoading(true)
-        actions.setLoadingText('데이터를 DB에 저장중입니다...')
+        store.setIsLoading(true)
+        store.setLoadingText('데이터를 DB에 저장중입니다...')
         const {addSongBulkAction} = await import('../actions')
         for (const filePlaylist of jsonData) {
           const res = await addPlaylistAction(filePlaylist.title)
@@ -61,16 +63,16 @@ export default function ClientHome({initialPlaylists}: Props) {
       } catch (error) {
         alert('오류 발생')
       } finally {
-        actions.setIsLoading(false)
+        store.setIsLoading(false)
       }
     }
     reader.readAsText(file)
   }
 
   const exportToJson = () => {
-    if (state.playlists.length === 0)
+    if (store.playlists.length === 0)
       return alert('빈 플레이리스트는 공유 불가')
-    const dataToExport = state.playlists.map((p) => ({
+    const dataToExport = store.playlists.map((p) => ({
       title: p.title,
       songs: p.songs.map((s) => ({
         title: s.title,
@@ -88,15 +90,15 @@ export default function ClientHome({initialPlaylists}: Props) {
   }
 
   const scrollToCurrentSong = () => {
-    if (!state.currentSong || !state.playingPlaylistId) return
-    const idx = state.playlists.findIndex(
-      (p) => p.id === state.playingPlaylistId
+    if (!store.currentSong || !store.playingPlaylistId) return
+    const idx = store.playlists.findIndex(
+      (p) => p.id === store.playingPlaylistId
     )
     if (idx === -1) return
-    actions.setActiveIndex(idx)
-    actions.setModal(true)
+    store.setActiveIndex(idx)
+    store.setModal(true)
     setTimeout(() => {
-      const el = document.getElementById(`song-${state.currentSong?.id}`)
+      const el = document.getElementById(`song-${store.currentSong?.id}`)
       if (el) {
         el.scrollIntoView({behavior: 'smooth', block: 'center'})
         el.classList.add('highlight-song')
@@ -106,23 +108,23 @@ export default function ClientHome({initialPlaylists}: Props) {
   }
 
   const center =
-    state.activeIndex >= 0 ? state.playlists[state.activeIndex] : null
+    store.activeIndex >= 0 ? store.playlists[store.activeIndex] : null
   const left =
-    state.activeIndex > 0 ? state.playlists[state.activeIndex - 1] : null
+    store.activeIndex > 0 ? store.playlists[store.activeIndex - 1] : null
   const right =
-    state.activeIndex < state.playlists.length - 1
-      ? state.playlists[state.activeIndex + 1]
+    store.activeIndex < store.playlists.length - 1
+      ? store.playlists[store.activeIndex + 1]
       : null
 
   const playbackControls = {
-    currentSong: state.currentSong,
-    playingPlaylistName: state.playingPlaylistName,
-    playingPlaylistId: state.playingPlaylistId,
-    handlePlaySong: actions.handlePlaySong,
-    handleSkip: actions.handleSkip,
-    setCurrentSong: actions.setCurrentSong,
-    setPlay: actions.setPlay,
-    play: state.play,
+    currentSong: store.currentSong,
+    playingPlaylistName: store.playingPlaylistName,
+    playingPlaylistId: store.playingPlaylistId,
+    handlePlaySong: store.handlePlaySong,
+    handleSkip: store.handleSkip,
+    setCurrentSong: store.setCurrentSong,
+    setPlay: store.setPlay,
+    play: store.play,
     playerRef: {
       current:
         typeof window !== 'undefined' && (window as any).YT?.Player
@@ -133,34 +135,34 @@ export default function ClientHome({initialPlaylists}: Props) {
 
   return (
     <div className="main-bg">
-      {state.isLoading && (
+      {store.isLoading && (
         <div className="loading-overlay">
           <div className="loader"></div>
-          <p>{state.loadingText}</p>
+          <p>{store.loadingText}</p>
         </div>
       )}
       <div
         className="bg-layer"
         style={{
-          backgroundImage: state.currentSong
-            ? `url(${state.currentSong.thumbnail})`
+          backgroundImage: store.currentSong
+            ? `url(${store.currentSong.thumbnail})`
             : 'none',
         }}
       />
 
       {/* YouTube Player Section */}
       <div
-        className={`youtube-container ${state.modal ? 'on-modal' : 'hidden-player'}`}
+        className={`youtube-container ${store.modal ? 'on-modal' : 'hidden-player'}`}
       >
         <div className="playlist-title">
-          {state.playingPlaylistName
-            ? `${state.playingPlaylistName} 재생 중...`
+          {store.playingPlaylistName
+            ? `${store.playingPlaylistName} 재생 중...`
             : ''}
         </div>
         <div id="yt-player"></div>
         <div className="modal-video-info">
           <p className="modal-video-title">
-            {state.currentSong?.title || '재생 중인 곡이 없습니다'}
+            {store.currentSong?.title || '재생 중인 곡이 없습니다'}
           </p>
         </div>
       </div>
@@ -170,7 +172,7 @@ export default function ClientHome({initialPlaylists}: Props) {
         {left && (
           <div
             className="playlist-album left"
-            onClick={() => actions.setActiveIndex(state.activeIndex - 1)}
+            onClick={() => store.setActiveIndex(store.activeIndex - 1)}
           >
             <div className="album-size">
               {left.songs[0] ? (
@@ -184,13 +186,13 @@ export default function ClientHome({initialPlaylists}: Props) {
         {center && (
           <div
             className="playlist-album center"
-            onClick={() => actions.setModal(true)}
+            onClick={() => store.setModal(true)}
           >
             <div className="album-size">
               <img
                 src={
-                  state.currentSong && state.playingPlaylistId === center.id
-                    ? state.currentSong.thumbnail
+                  store.currentSong && store.playingPlaylistId === center.id
+                    ? store.currentSong.thumbnail
                     : center.songs[0]?.thumbnail
                 }
                 alt="썸네일"
@@ -202,7 +204,7 @@ export default function ClientHome({initialPlaylists}: Props) {
               onClick={(e) => {
                 e.stopPropagation()
                 if (center.songs.length > 0) {
-                  actions.handlePlaySong(center.songs[0], center)
+                  store.handlePlaySong(center.songs[0], center)
                 }
               }}
             >
@@ -212,7 +214,7 @@ export default function ClientHome({initialPlaylists}: Props) {
               className="playlist-delete-anchor"
               onClick={(e) => {
                 e.stopPropagation()
-                actions.deletePlaylist(center.id)
+                store.deletePlaylist(center.id)
               }}
             >
               x
@@ -222,7 +224,7 @@ export default function ClientHome({initialPlaylists}: Props) {
         {right ? (
           <div
             className="playlist-album right"
-            onClick={() => actions.setActiveIndex(state.activeIndex + 1)}
+            onClick={() => store.setActiveIndex(store.activeIndex + 1)}
           >
             <div className="album-size">
               {right.songs[0] ? (
@@ -234,8 +236,8 @@ export default function ClientHome({initialPlaylists}: Props) {
           </div>
         ) : (
           <div
-            className={`music-playlist-add ${state.playlists.length === 0 ? 'center' : 'right'}`}
-            onClick={actions.addPlaylist}
+            className={`music-playlist-add ${store.playlists.length === 0 ? 'center' : 'right'}`}
+            onClick={store.addPlaylist}
           >
             <div className="plus-btn" />
           </div>
@@ -244,11 +246,11 @@ export default function ClientHome({initialPlaylists}: Props) {
 
       {center && (
         <Modal
-          isOpen={state.modal}
-          onClose={() => actions.setModal(false)}
+          isOpen={store.modal}
+          onClose={() => store.setModal(false)}
           playlist={center}
-          updatePlaylist={actions.updatePlaylist}
-          setPlaylists={actions.setPlaylists}
+          updatePlaylist={store.updatePlaylist}
+          setPlaylists={store.setPlaylists}
           {...playbackControls}
         />
       )}
@@ -258,15 +260,15 @@ export default function ClientHome({initialPlaylists}: Props) {
         <div className="icon-menu-point">
           <button
             className="shuffle-btn"
-            onClick={() => center && actions.shufflePlaylist(center.id)}
+            onClick={() => center && store.shufflePlaylist(center.id)}
           >
             🔀
           </button>
 
           <button
-            className={`autoplay-toggle ${state.isAutoPlay ? 'on' : 'off'}`}
+            className={`autoplay-toggle ${store.isAutoPlay ? 'on' : 'off'}`}
             onClick={() =>
-              actions.setOpenMenu((prev) =>
+              store.setOpenMenu((prev) =>
                 prev === 'autoplay' ? null : 'autoplay'
               )
             }
@@ -274,19 +276,19 @@ export default function ClientHome({initialPlaylists}: Props) {
             🔁
           </button>
           <div
-            className={`setting-menu ${state.openMenu === 'autoplay' ? 'is-open' : ''}`}
+            className={`setting-menu ${store.openMenu === 'autoplay' ? 'is-open' : ''}`}
           >
             <p className="menu-title">재생 모드 설정</p>
             <div className="menu-options">
               <button
-                className={!state.isAutoPlay ? 'active' : ''}
-                onClick={() => actions.setIsAutoPlay(false)}
+                className={!store.isAutoPlay ? 'active' : ''}
+                onClick={() => store.setIsAutoPlay(false)}
               >
                 현재 리스트 반복
               </button>
               <button
-                className={state.isAutoPlay ? 'active' : ''}
-                onClick={() => actions.setIsAutoPlay(true)}
+                className={store.isAutoPlay ? 'active' : ''}
+                onClick={() => store.setIsAutoPlay(true)}
               >
                 모든 리스트 재생
               </button>
@@ -294,31 +296,31 @@ export default function ClientHome({initialPlaylists}: Props) {
           </div>
 
           <button
-            className={`timer-btn ${state.sleepTime !== null ? 'active' : ''}`}
+            className={`timer-btn ${store.sleepTime !== null ? 'active' : ''}`}
             onClick={() =>
-              actions.setOpenMenu((prev) => (prev === 'timer' ? null : 'timer'))
+              store.setOpenMenu((prev) => (prev === 'timer' ? null : 'timer'))
             }
           >
             ⌛
           </button>
           <div
-            className={`setting-menu ${state.openMenu === 'timer' ? 'is-open' : ''}`}
+            className={`setting-menu ${store.openMenu === 'timer' ? 'is-open' : ''}`}
           >
             <p className="menu-title">수면 타이머 설정</p>
-            {state.sleepTime === null ? (
+            {store.sleepTime === null ? (
               <div className="menu-options">
                 {[15, 30, 60, 120].map((m) => (
-                  <button key={m} onClick={() => actions.setSleepTime(m * 60)}>
+                  <button key={m} onClick={() => store.setSleepTime(m * 60)}>
                     {m === 60 ? '1시간' : m === 120 ? '2시간' : `${m}분`}
                   </button>
                 ))}
               </div>
             ) : (
               <div className="menu-active">
-                <div className="remaining-time">{`${Math.floor(state.sleepTime / 60)}:${String(state.sleepTime % 60).padStart(2, '0')}`}</div>
+                <div className="remaining-time">{`${Math.floor(store.sleepTime / 60)}:${String(store.sleepTime % 60).padStart(2, '0')}`}</div>
                 <button
                   className="cancel-btn"
-                  onClick={() => actions.setSleepTime(null)}
+                  onClick={() => store.setSleepTime(null)}
                 >
                   타이머 취소
                 </button>
@@ -329,15 +331,13 @@ export default function ClientHome({initialPlaylists}: Props) {
           <button
             className="backup-main-btn"
             onClick={() =>
-              actions.setOpenMenu((prev) =>
-                prev === 'backup' ? null : 'backup'
-              )
+              store.setOpenMenu((prev) => (prev === 'backup' ? null : 'backup'))
             }
           >
             💾
           </button>
           <div
-            className={`setting-menu ${state.openMenu === 'backup' ? 'is-open' : ''}`}
+            className={`setting-menu ${store.openMenu === 'backup' ? 'is-open' : ''}`}
           >
             <div className="menu-title">
               <p>데이터 관리</p>

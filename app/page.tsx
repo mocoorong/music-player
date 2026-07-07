@@ -36,6 +36,17 @@ export default async function Home() {
     },
   })
 
+  const likedSongsRaw = await db.likedSong.findMany({
+    where: {userId: session.user.id},
+    orderBy: {createdAt: 'desc'},
+  })
+  const initialLikedSongs = likedSongsRaw.map((s) => ({
+    id: s.id,
+    title: s.title,
+    youtubeUrl: s.youtubeUrl,
+    thumbnail: s.thumbnail,
+  }))
+
   return (
     <>
       <div className="user-info-bar">
@@ -55,6 +66,7 @@ export default async function Home() {
 
       <ClientHome
         initialPlaylists={initialPlaylists}
+        initialLikedSongs={initialLikedSongs}
         addPlaylist={addPlaylist}
       />
     </>

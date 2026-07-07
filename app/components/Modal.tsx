@@ -2,6 +2,7 @@
 
 import {Song, Playlist} from './ClientHome'
 import {useModalLogic} from '../hooks/useModalLogic'
+import {usePlayerStore} from '../store/usePlayerStore'
 
 interface ModalProps {
   isOpen: boolean
@@ -23,6 +24,7 @@ interface ModalProps {
 export default function Modal(props: ModalProps) {
   const {state, actions} = useModalLogic(props)
   const {isOpen, onClose, playlist, currentSong, handlePlaySong} = props
+  const {likedSongs, toggleLike} = usePlayerStore()
 
   if (!isOpen) return null
 
@@ -219,6 +221,14 @@ export default function Modal(props: ModalProps) {
                   className="song-controls"
                   onClick={(e) => e.stopPropagation()}
                 >
+                  <button
+                    className={`like-btn ${likedSongs.some((s) => s.youtubeUrl === song.youtubeUrl) ? 'liked' : ''}`}
+                    onClick={() => toggleLike(song)}
+                  >
+                    {likedSongs.some((s) => s.youtubeUrl === song.youtubeUrl)
+                      ? '♥'
+                      : '♡'}
+                  </button>
                   <button
                     className="delete-btn"
                     onClick={() => actions.deleteSong(song.id)}

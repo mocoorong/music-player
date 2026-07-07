@@ -214,3 +214,49 @@ export async function updatePlaylistTitleAction(
     return {success: false, error: error.message}
   }
 }
+
+// 8. 좋아요 토글
+export async function toggleLikeAction(
+  youtubeUrl: string,
+  title: string,
+  thumbnail: string
+) {
+  const session = await auth()
+  const userId = session?.user?.id
+  if (!userId) return {success: false, error: '로그인이 필요합니다.'}
+
+  try {
+    const existing = await db.likedSong.findUnique({
+      where: {userId_youtubeUrl: {userId, youtubeUrl}},
+    })
+
+    if (existing) {
+      await db.likedSong.delete({where: {id: existing.id}})
+      return {success: true, liked: false}
+    }
+
+    await db.likedSong.create({
+      data: {userId, youtubeUrl, title, thumbnail},
+    })
+    return {success: true, liked: true}
+  } catch (error: any) {
+    return {success: false, error: error.message}
+  }
+}
+
+// 9. 좋아요한 곡 목록 조회
+export async function getLikedSongsAction() {
+  const session = await auth()
+  const userId = session?.user?.id
+  if (!userId) return {success: false, error: '로그인이 필요합니다.', data: []}
+
+  try {
+    const likedSongs = await db.likedSong.findMany({
+      where: {userId},
+      orderBy: {createdAt: 'desc'},
+    })
+    return {success: true, data: likedSongs}
+  } catch (error: any) {
+    return {success: false, error: error.message, data: []}
+  }
+}

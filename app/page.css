@@ -542,6 +542,13 @@ body {
   color: #333;
 }
 
+.song-controls {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-left: auto;
+  flex-shrink: 0;
+}
 .song-controls button {
   padding: 3px 6px;
   cursor: pointer;
@@ -549,7 +556,11 @@ body {
   border: 1px solid #ccc;
   border-radius: 3px;
   font-size: 0.8rem;
-  margin-left: auto;
+}
+.like-btn {
+  width: 25px;
+  height: 25px;
+  text-align: center;
 }
 .song-item.active-playing .song-controls button {
   color: white;

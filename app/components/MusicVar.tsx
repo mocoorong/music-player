@@ -1,25 +1,14 @@
-import {Song, Playlist} from './ClientHome'
+'use client'
+
+import {usePlayerStore} from '../store/usePlayerStore'
 
 interface MusicVarProps {
-  playbackControls: {
-    currentSong: Song | null
-    playingPlaylistName: string
-    playingPlaylistId: string
-    handlePlaySong: (song: Song, playlist: Playlist) => void
-    handleSkip: (direction: number) => void
-    setCurrentSong: (song: Song | null) => void
-    setPlay: (play: boolean) => void
-    play: boolean
-    playerRef: any
-  }
   scrollToCurrentSong: () => void
 }
-export default function MusicVar({
-  playbackControls,
-  scrollToCurrentSong,
-}: MusicVarProps) {
+
+export default function MusicVar({scrollToCurrentSong}: MusicVarProps) {
   const {currentSong, playingPlaylistName, play, setPlay, handleSkip} =
-    playbackControls
+    usePlayerStore()
 
   return (
     <div className="music-var">

@@ -1,38 +1,13 @@
-'use client'
-
 import {useState, useEffect} from 'react'
 import {Song, Playlist} from '../components/ClientHome'
 import {addSong, deleteSongAction, updatePlaylistTitleAction} from '../actions'
-import {usePlayerStore} from '../store/usePlayerStore'
+import {usePlayerStore, playerRef} from '../store/usePlayerStore'
 
 interface UseModalLogicProps {
   playlist: Playlist
-  isOpen: boolean
-  onClose: () => void
-  currentSong: Song | null
-  updatePlaylist: (
-    payload: Partial<Playlist> | ((p: Playlist) => Playlist),
-    targetId?: string
-  ) => void
-  setPlaylists: React.Dispatch<React.SetStateAction<Playlist[]>>
-  handleSkip: (direction: number) => void
-  setPlay: (play: boolean) => void
-  setCurrentSong: (song: Song | null) => void
-  playerRef: React.MutableRefObject<any>
 }
 
-export function useModalLogic({
-  playlist,
-  isOpen,
-  onClose,
-  currentSong,
-  updatePlaylist,
-  setPlaylists,
-  handleSkip,
-  setPlay,
-  setCurrentSong,
-  playerRef,
-}: UseModalLogicProps) {
+export function useModalLogic({playlist}: UseModalLogicProps) {
   const [tempTitle, setTempTitle] = useState(playlist.title)
   const [youtubeUrl, setYoutubeUrl] = useState('')
   const [isEditingTitle, setIsEditingTitle] = useState(false)
@@ -40,19 +15,31 @@ export function useModalLogic({
   const [searchResults, setSearchResults] = useState<any[]>([])
   const [activeTab, setActiveTab] = useState<'search' | 'url'>('search')
   const [draggedItemIndex, setDraggedItemIndex] = useState<number | null>(null)
-  const {originalOrders, likedSongs, setLikedSongs} = usePlayerStore()
+  const {
+    originalOrders,
+    likedSongs,
+    setLikedSongs,
+    updatePlaylist,
+    setPlaylists,
+    handleSkip,
+    setPlay,
+    setCurrentSong,
+    currentSong,
+    modal: isOpen,
+    setModal,
+  } = usePlayerStore()
   const isShuffled = !!originalOrders[playlist.id]
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
         if (searchResults.length > 0) setSearchResults([])
-        else onClose()
+        else setModal(false)
       }
     }
     if (isOpen) window.addEventListener('keydown', handleKeyDown)
     return () => window.removeEventListener('keydown', handleKeyDown)
-  }, [isOpen, searchResults, onClose])
+  }, [isOpen, searchResults, setModal])
 
   useEffect(() => {
     setTempTitle(playlist.title)

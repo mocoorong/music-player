@@ -1,32 +1,19 @@
 'use client'
 
-import {Song, Playlist} from './ClientHome'
+import {Playlist} from './ClientHome'
 import {useModalLogic} from '../hooks/useModalLogic'
 import {usePlayerStore} from '../store/usePlayerStore'
 
 interface ModalProps {
-  isOpen: boolean
-  onClose: () => void
   playlist: Playlist
-  updatePlaylist: (
-    payload: Partial<Playlist> | ((p: Playlist) => Playlist),
-    targetId?: string
-  ) => void
-  setPlaylists: React.Dispatch<React.SetStateAction<Playlist[]>>
-  currentSong: Song | null
-  handlePlaySong: (song: Song, playlist: Playlist) => void
-  handleSkip: (direction: number) => void
-  setCurrentSong: (song: Song | null) => void
-  setPlay: (play: boolean) => void
-  playerRef: React.MutableRefObject<any>
 }
 
-export default function Modal(props: ModalProps) {
-  const {state, actions} = useModalLogic(props)
-  const {isOpen, onClose, playlist, currentSong, handlePlaySong} = props
-  const {likedSongs, toggleLike} = usePlayerStore()
+export default function Modal({playlist}: ModalProps) {
+  const {state, actions} = useModalLogic({playlist})
+  const {modal, setModal, currentSong, handlePlaySong, likedSongs, toggleLike} =
+    usePlayerStore()
 
-  if (!isOpen) return null
+  if (!modal) return null
 
   return (
     <div
@@ -36,7 +23,7 @@ export default function Modal(props: ModalProps) {
           actions.setSearchResults([])
           actions.setSearchQuery('')
         } else {
-          onClose()
+          setModal(false)
           actions.setYoutubeUrl('')
           actions.setSearchQuery('')
         }

@@ -4,7 +4,7 @@ import Modal from './Modal'
 import MusicVar from './MusicVar'
 import './../page.css'
 import {useMusicPlayer} from '../hooks/useMusicPlayer'
-import {usePlayerStore, playerRef} from '../store/usePlayerStore'
+import {usePlayerStore} from '../store/usePlayerStore'
 import {addPlaylistAction} from '../actions'
 import {useRef, useEffect, useState} from 'react'
 import LikedSongsModal from './LikedSongsModal'
@@ -12,7 +12,6 @@ import LikedSongsModal from './LikedSongsModal'
 interface Props {
   initialPlaylists: any[]
   initialLikedSongs: any[]
-  addPlaylist: (title: string) => Promise<void>
 }
 
 export type Song = {
@@ -126,23 +125,6 @@ export default function ClientHome({
     store.activeIndex < store.playlists.length - 1
       ? store.playlists[store.activeIndex + 1]
       : null
-
-  const playbackControls = {
-    currentSong: store.currentSong,
-    playingPlaylistName: store.playingPlaylistName,
-    playingPlaylistId: store.playingPlaylistId,
-    handlePlaySong: store.handlePlaySong,
-    handleSkip: store.handleSkip,
-    setCurrentSong: store.setCurrentSong,
-    setPlay: store.setPlay,
-    play: store.play,
-    playerRef: {
-      current:
-        typeof window !== 'undefined' && (window as any).YT?.Player
-          ? playerRef.current
-          : null,
-    },
-  }
 
   return (
     <div className="main-bg">
@@ -258,16 +240,7 @@ export default function ClientHome({
         )}
       </div>
 
-      {center && (
-        <Modal
-          isOpen={store.modal}
-          onClose={() => store.setModal(false)}
-          playlist={center}
-          updatePlaylist={store.updatePlaylist}
-          setPlaylists={store.setPlaylists}
-          {...playbackControls}
-        />
-      )}
+      {center && <Modal playlist={center} />}
 
       <LikedSongsModal
         isOpen={likedModalOpen}
@@ -389,10 +362,7 @@ export default function ClientHome({
           </div>
         </div>
       </div>
-      <MusicVar
-        playbackControls={playbackControls}
-        scrollToCurrentSong={scrollToCurrentSong}
-      />
+      <MusicVar scrollToCurrentSong={scrollToCurrentSong} />
     </div>
   )
 }

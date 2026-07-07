@@ -62,11 +62,25 @@ export async function addPlaylistAction(title: string) {
 // 2. 플레이리스트 삭제
 export async function deletePlaylistAction(id: string) {
   try {
-    const userId = await validatePlaylistOwner(id) // 소유권 확인
+    const userId = await validatePlaylistOwner(id)
+
+    const songs = await db.song.findMany({
+      where: {playlistId: id},
+      select: {youtubeUrl: true},
+    })
 
     await db.playlist.delete({
       where: {id, userId},
     })
+
+    if (songs.length > 0) {
+      await db.likedSong.deleteMany({
+        where: {
+          userId,
+          youtubeUrl: {in: songs.map((s) => s.youtubeUrl)},
+        },
+      })
+    }
 
     revalidatePath('/')
     return {success: true}
@@ -123,13 +137,16 @@ export async function deleteSongAction(songId: string) {
     const song = await db.song.findFirst({
       where: {
         id: songId,
-        playlist: {userId: userId}, // Relation 필터를 이용한 소유권 체크
+        playlist: {userId: userId},
       },
     })
 
     if (!song) return {success: false, error: '삭제 권한이 없습니다.'}
 
     await db.song.delete({where: {id: songId}})
+    await db.likedSong.deleteMany({
+      where: {userId, youtubeUrl: song.youtubeUrl},
+    })
 
     revalidatePath('/')
     return {success: true}

@@ -27,6 +27,8 @@ export function useModalLogic({playlist}: UseModalLogicProps) {
     currentSong,
     modal: isOpen,
     setModal,
+    likedSongs,
+    setLikedSongs,
   } = usePlayerStore()
   const isShuffled = !!originalOrders[playlist.id]
 
@@ -133,6 +135,7 @@ export function useModalLogic({playlist}: UseModalLogicProps) {
 
   const deleteSong = async (songId: string) => {
     if (!confirm('이 곡을 삭제하시겠습니까?')) return
+    const deletedSong = playlist.songs.find((s) => s.id === songId)
     const result = await deleteSongAction(songId)
     if (result.success) {
       setPlaylists((prev) =>
@@ -142,6 +145,14 @@ export function useModalLogic({playlist}: UseModalLogicProps) {
             : p
         )
       )
+      if (
+        deletedSong &&
+        likedSongs.some((s) => s.youtubeUrl === deletedSong.youtubeUrl)
+      ) {
+        setLikedSongs(
+          likedSongs.filter((s) => s.youtubeUrl !== deletedSong.youtubeUrl)
+        )
+      }
       if (currentSong?.id === songId) {
         if (playlist.songs.length > 1) handleSkip(1)
         else {

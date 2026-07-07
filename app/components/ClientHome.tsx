@@ -1,12 +1,19 @@
 'use client'
 
-import {useRef, useEffect} from 'react'
 import Modal from './Modal'
 import MusicVar from './MusicVar'
 import './../page.css'
 import {useMusicPlayer} from '../hooks/useMusicPlayer'
 import {usePlayerStore} from '../store/usePlayerStore'
 import {addPlaylistAction} from '../actions'
+import {useRef, useEffect, useState} from 'react'
+import LikedSongsModal from './LikedSongsModal'
+
+interface Props {
+  initialPlaylists: any[]
+  initialLikedSongs: any[]
+  addPlaylist: (title: string) => Promise<void>
+}
 
 export type Song = {
   id: string
@@ -16,15 +23,19 @@ export type Song = {
 }
 export type Playlist = {id: string; title: string; songs: Song[]}
 
-interface Props {
-  initialPlaylists: any[]
-  addPlaylist: (title: string) => Promise<void>
-}
-
-export default function ClientHome({initialPlaylists}: Props) {
+export default function ClientHome({
+  initialPlaylists,
+  initialLikedSongs,
+}: Props) {
   useMusicPlayer(initialPlaylists)
   const store = usePlayerStore()
   const containerRef = useRef<HTMLDivElement>(null)
+  const [likedModalOpen, setLikedModalOpen] = useState(false)
+
+  useEffect(() => {
+    store.setLikedSongs(initialLikedSongs)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   // 클릭 외 영역 닫기 로직
   useEffect(() => {
@@ -229,9 +240,18 @@ export default function ClientHome({initialPlaylists}: Props) {
 
       {center && <Modal playlist={center} />}
 
+      <LikedSongsModal
+        isOpen={likedModalOpen}
+        onClose={() => setLikedModalOpen(false)}
+      />
+
       {/* Bottom Icons Section */}
       <div className="icon-container" ref={containerRef}>
         <div className="icon-menu-point">
+          <button className="liked-btn" onClick={() => setLikedModalOpen(true)}>
+            ❤️
+          </button>
+
           <button
             className="shuffle-btn"
             onClick={() => center && store.shufflePlaylist(center.id)}

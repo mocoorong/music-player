@@ -1,7 +1,6 @@
 import {db} from '../lib/db'
 import ClientHome from './components/ClientHome'
 import {auth, signOut} from '../auth'
-import {revalidatePath} from 'next/cache'
 import LoginModal from './components/LoginModal'
 
 export default async function Home() {
@@ -9,20 +8,6 @@ export default async function Home() {
 
   if (!session) {
     return <LoginModal />
-  }
-
-  async function addPlaylist(title: string) {
-    'use server'
-    if (!session?.user?.id) return
-
-    await db.playlist.create({
-      data: {
-        title: title,
-        userId: session.user.id,
-      },
-    })
-
-    revalidatePath('/')
   }
 
   const initialPlaylists = await db.playlist.findMany({
@@ -67,7 +52,6 @@ export default async function Home() {
       <ClientHome
         initialPlaylists={initialPlaylists}
         initialLikedSongs={initialLikedSongs}
-        addPlaylist={addPlaylist}
       />
     </>
   )

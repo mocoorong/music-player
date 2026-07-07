@@ -118,14 +118,23 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
   },
 
   handleSkip: (direction) => {
-    const {playlists, playingPlaylistId, currentSong, isAutoPlay} = get()
-    const list = playlists.find((p) => p.id === playingPlaylistId)
+    const {playlists, playingPlaylistId, currentSong, isAutoPlay, likedSongs} =
+      get()
+    const isLiked = playingPlaylistId === '__liked__'
+    const list = isLiked
+      ? {id: '__liked__', songs: likedSongs}
+      : playlists.find((p) => p.id === playingPlaylistId)
     if (!list || list.songs.length === 0) return
+
     const currentIndex = list.songs.findIndex((s) => s.id === currentSong?.id)
     const nextIndex = currentIndex + direction
+
     if (nextIndex >= 0 && nextIndex < list.songs.length) {
       get().playSpecificSong(list.songs[nextIndex])
-    } else if (isAutoPlay) {
+      return
+    }
+
+    if (isAutoPlay && !isLiked) {
       const currentListIdx = playlists.findIndex((p) => p.id === list.id)
       const nextListIdx =
         (currentListIdx + direction + playlists.length) % playlists.length
@@ -139,11 +148,12 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
         )
         set({activeIndex: nextListIdx})
       }
-    } else {
-      get().playSpecificSong(
-        list.songs[direction > 0 ? 0 : list.songs.length - 1]
-      )
+      return
     }
+
+    get().playSpecificSong(
+      list.songs[direction > 0 ? 0 : list.songs.length - 1]
+    )
   },
 
   deletePlaylist: async (id) => {

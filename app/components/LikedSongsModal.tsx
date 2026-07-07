@@ -30,6 +30,7 @@ export default function LikedSongsModal({
   return (
     <div className="modal-bg" onClick={onClose}>
       <div className="modal-inner" onClick={(e) => e.stopPropagation()}>
+        <div className="modal-inner-left"></div>
         <div className="modal-inner-right">
           <div className="modal-inner-title">
             <p className="modal-title-display">

@@ -180,7 +180,10 @@ export default function ClientHome({
         {center && (
           <div
             className="playlist-album center"
-            onClick={() => store.setModal(true)}
+            onClick={() => {
+              setLikedModalOpen(false)
+              store.setModal(true)
+            }}
           >
             <div className="album-size">
               <img
@@ -248,7 +251,13 @@ export default function ClientHome({
       {/* Bottom Icons Section */}
       <div className="icon-container" ref={containerRef}>
         <div className="icon-menu-point">
-          <button className="liked-btn" onClick={() => setLikedModalOpen(true)}>
+          <button
+            className="liked-btn"
+            onClick={() => {
+              store.setModal(false)
+              setLikedModalOpen(true)
+            }}
+          >
             ❤️
           </button>
 

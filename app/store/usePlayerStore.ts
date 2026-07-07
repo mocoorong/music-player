@@ -1,6 +1,10 @@
 import {create} from 'zustand'
 import {Song, Playlist} from '../components/ClientHome'
-import {addPlaylistAction, deletePlaylistAction} from '../actions'
+import {
+  addPlaylistAction,
+  deletePlaylistAction,
+  toggleLikeAction,
+} from '../actions'
 
 export const playerRef: {current: any} = {current: null}
 export const pendingSongRef: {current: Song | null} = {current: null}
@@ -26,7 +30,10 @@ interface PlayerState {
   isLoading: boolean
   loadingText: string
   originalOrders: Record<string, Song[]>
+  likedSongs: Song[]
 
+  setLikedSongs: (songs: Song[]) => void
+  toggleLike: (song: Song) => Promise<void>
   setPlay: (v: boolean) => void
   setCurrentSong: (s: Song | null) => void
   setPlaylists: (p: Playlist[] | ((prev: Playlist[]) => Playlist[])) => void
@@ -68,6 +75,7 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
   isLoading: false,
   loadingText: '',
   originalOrders: {},
+  likedSongs: [],
 
   setPlay: (v) => set({play: v}),
   setCurrentSong: (s) => set({currentSong: s}),
@@ -91,6 +99,7 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
     })),
   setIsLoading: (v) => set({isLoading: v}),
   setLoadingText: (v) => set({loadingText: v}),
+  setLikedSongs: (songs) => set({likedSongs: songs}),
 
   playSpecificSong: (song) => {
     const videoId = extractVideoId(song.youtubeUrl)
@@ -218,6 +227,26 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
       )
     } else {
       get().updatePlaylist({songs: restoredOrRandomized}, targetPlaylistId)
+    }
+  },
+
+  toggleLike: async (song) => {
+    const {likedSongs} = get()
+    const isLiked = likedSongs.some((s) => s.youtubeUrl === song.youtubeUrl)
+
+    set({
+      likedSongs: isLiked
+        ? likedSongs.filter((s) => s.youtubeUrl !== song.youtubeUrl)
+        : [song, ...likedSongs],
+    })
+
+    const result = await toggleLikeAction(
+      song.youtubeUrl,
+      song.title,
+      song.thumbnail
+    )
+    if (!result.success) {
+      set({likedSongs})
     }
   },
 }))

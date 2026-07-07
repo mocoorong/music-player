@@ -163,7 +163,7 @@ export default function ClientHome({
 
       {/* YouTube Player Section */}
       <div
-        className={`youtube-container ${store.modal ? 'on-modal' : 'hidden-player'}`}
+        className={`youtube-container ${store.modal || likedModalOpen ? 'on-modal' : 'hidden-player'}`}
       >
         <div className="playlist-title">
           {store.playingPlaylistName

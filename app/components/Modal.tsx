@@ -10,7 +10,8 @@ interface ModalProps {
 
 export default function Modal({playlist}: ModalProps) {
   const {state, actions} = useModalLogic({playlist})
-  const {modal, setModal, currentSong, handlePlaySong} = usePlayerStore()
+  const {modal, setModal, currentSong, handlePlaySong, likedSongs, toggleLike} =
+    usePlayerStore()
 
   if (!modal) return null
 
@@ -207,6 +208,14 @@ export default function Modal({playlist}: ModalProps) {
                   className="song-controls"
                   onClick={(e) => e.stopPropagation()}
                 >
+                  <button
+                    className={`like-btn ${likedSongs.some((s) => s.youtubeUrl === song.youtubeUrl) ? 'liked' : ''}`}
+                    onClick={() => toggleLike(song)}
+                  >
+                    {likedSongs.some((s) => s.youtubeUrl === song.youtubeUrl)
+                      ? '♥'
+                      : '♡'}
+                  </button>
                   <button
                     className="delete-btn"
                     onClick={() => actions.deleteSong(song.id)}

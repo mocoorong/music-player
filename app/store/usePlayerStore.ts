@@ -160,7 +160,8 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
     if (!confirm('이 플레이 리스트를 삭제하시겠습니까?')) return
     const result = await deletePlaylistAction(id)
     if (!result.success) return
-    const {playlists, playingPlaylistId, activeIndex} = get()
+    const {playlists, playingPlaylistId, activeIndex, likedSongs} = get()
+    const target = playlists.find((p) => p.id === id)
     const next = playlists.filter((p) => p.id !== id)
     if (playingPlaylistId === id) {
       set({
@@ -170,6 +171,12 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
         playingPlaylistId: '',
       })
       playerRef.current?.stopVideo()
+    }
+    if (target) {
+      const removedUrls = new Set(target.songs.map((s) => s.youtubeUrl))
+      set({
+        likedSongs: likedSongs.filter((s) => !removedUrls.has(s.youtubeUrl)),
+      })
     }
     set({
       playlists: next,

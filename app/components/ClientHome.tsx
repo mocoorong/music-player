@@ -5,7 +5,7 @@ import Modal from './Modal'
 import MusicVar from './MusicVar'
 import './../page.css'
 import {useMusicPlayer} from '../hooks/useMusicPlayer'
-import {usePlayerStore, playerRef} from '../store/usePlayerStore'
+import {usePlayerStore} from '../store/usePlayerStore'
 import {addPlaylistAction} from '../actions'
 
 export type Song = {
@@ -115,23 +115,6 @@ export default function ClientHome({initialPlaylists}: Props) {
     store.activeIndex < store.playlists.length - 1
       ? store.playlists[store.activeIndex + 1]
       : null
-
-  const playbackControls = {
-    currentSong: store.currentSong,
-    playingPlaylistName: store.playingPlaylistName,
-    playingPlaylistId: store.playingPlaylistId,
-    handlePlaySong: store.handlePlaySong,
-    handleSkip: store.handleSkip,
-    setCurrentSong: store.setCurrentSong,
-    setPlay: store.setPlay,
-    play: store.play,
-    playerRef: {
-      current:
-        typeof window !== 'undefined' && (window as any).YT?.Player
-          ? playerRef.current
-          : null,
-    },
-  }
 
   return (
     <div className="main-bg">
@@ -244,16 +227,7 @@ export default function ClientHome({initialPlaylists}: Props) {
         )}
       </div>
 
-      {center && (
-        <Modal
-          isOpen={store.modal}
-          onClose={() => store.setModal(false)}
-          playlist={center}
-          updatePlaylist={store.updatePlaylist}
-          setPlaylists={store.setPlaylists}
-          {...playbackControls}
-        />
-      )}
+      {center && <Modal playlist={center} />}
 
       {/* Bottom Icons Section */}
       <div className="icon-container" ref={containerRef}>
@@ -360,10 +334,7 @@ export default function ClientHome({initialPlaylists}: Props) {
           </div>
         </div>
       </div>
-      <MusicVar
-        playbackControls={playbackControls}
-        scrollToCurrentSong={scrollToCurrentSong}
-      />
+      <MusicVar scrollToCurrentSong={scrollToCurrentSong} />
     </div>
   )
 }

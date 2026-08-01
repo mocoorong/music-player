@@ -9,11 +9,15 @@ import {
 import {Playlist} from '../components/ClientHome'
 
 export function useMusicPlayer(initialPlaylists: Playlist[]) {
-  const {play, sleepTime, setPlay, setSleepTime, setPlaylists} =
+  const {play, sleepTime, setPlay, setSleepTime, setPlaylists, setActiveIndex} =
     usePlayerStore()
 
   useEffect(() => {
     setPlaylists(initialPlaylists)
+    if (initialPlaylists.length > 0) {
+      setActiveIndex(0)
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
   useEffect(() => {

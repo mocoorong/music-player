@@ -52,7 +52,6 @@ export default async function Home() {
       <ClientHome
         initialPlaylists={initialPlaylists}
         initialLikedSongs={initialLikedSongs}
-        addPlaylist={addPlaylist}
       />
     </>
   )

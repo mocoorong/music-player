@@ -18,6 +18,7 @@ model User {
   accounts      Account[]
   sessions      Session[]
   playlists     Playlist[] 
+   likedSongs    LikedSong[]
 }
 
 model Playlist {
@@ -41,6 +42,19 @@ model Song {
   playlistId  String
   playlist    Playlist @relation(fields: [playlistId], references: [id], onDelete: Cascade)
   createdAt DateTime @default(now())
+}
+
+model LikedSong {
+  id         String   @id @default(uuid())
+  youtubeUrl String
+  title      String
+  thumbnail  String
+  createdAt  DateTime @default(now())
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, youtubeUrl])
 }
 
 model Account {

@@ -62,11 +62,25 @@ export async function addPlaylistAction(title: string) {
 // 2. 플레이리스트 삭제
 export async function deletePlaylistAction(id: string) {
   try {
-    const userId = await validatePlaylistOwner(id) // 소유권 확인
+    const userId = await validatePlaylistOwner(id)
+
+    const songs = await db.song.findMany({
+      where: {playlistId: id},
+      select: {youtubeUrl: true},
+    })
 
     await db.playlist.delete({
       where: {id, userId},
     })
+
+    if (songs.length > 0) {
+      await db.likedSong.deleteMany({
+        where: {
+          userId,
+          youtubeUrl: {in: songs.map((s) => s.youtubeUrl)},
+        },
+      })
+    }
 
     revalidatePath('/')
     return {success: true}
@@ -123,13 +137,16 @@ export async function deleteSongAction(songId: string) {
     const song = await db.song.findFirst({
       where: {
         id: songId,
-        playlist: {userId: userId}, // Relation 필터를 이용한 소유권 체크
+        playlist: {userId: userId},
       },
     })
 
     if (!song) return {success: false, error: '삭제 권한이 없습니다.'}
 
     await db.song.delete({where: {id: songId}})
+    await db.likedSong.deleteMany({
+      where: {userId, youtubeUrl: song.youtubeUrl},
+    })
 
     revalidatePath('/')
     return {success: true}
@@ -212,5 +229,51 @@ export async function updatePlaylistTitleAction(
   } catch (error: any) {
     console.error('제목 수정 실패:', error)
     return {success: false, error: error.message}
+  }
+}
+
+// 8. 좋아요 토글
+export async function toggleLikeAction(
+  youtubeUrl: string,
+  title: string,
+  thumbnail: string
+) {
+  const session = await auth()
+  const userId = session?.user?.id
+  if (!userId) return {success: false, error: '로그인이 필요합니다.'}
+
+  try {
+    const existing = await db.likedSong.findUnique({
+      where: {userId_youtubeUrl: {userId, youtubeUrl}},
+    })
+
+    if (existing) {
+      await db.likedSong.delete({where: {id: existing.id}})
+      return {success: true, liked: false}
+    }
+
+    await db.likedSong.create({
+      data: {userId, youtubeUrl, title, thumbnail},
+    })
+    return {success: true, liked: true}
+  } catch (error: any) {
+    return {success: false, error: error.message}
+  }
+}
+
+// 9. 좋아요한 곡 목록 조회
+export async function getLikedSongsAction() {
+  const session = await auth()
+  const userId = session?.user?.id
+  if (!userId) return {success: false, error: '로그인이 필요합니다.', data: []}
+
+  try {
+    const likedSongs = await db.likedSong.findMany({
+      where: {userId},
+      orderBy: {createdAt: 'desc'},
+    })
+    return {success: true, data: likedSongs}
+  } catch (error: any) {
+    return {success: false, error: error.message, data: []}
   }
 }

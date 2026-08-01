@@ -12,7 +12,6 @@ import LikedSongsModal from './LikedSongsModal'
 interface Props {
   initialPlaylists: any[]
   initialLikedSongs: any[]
-  addPlaylist: (title: string) => Promise<void>
 }
 
 export type Song = {

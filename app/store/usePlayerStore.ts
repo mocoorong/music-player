@@ -222,28 +222,31 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
     if (!currentList || currentList.songs.length === 0) return
 
     const saved = originalOrders[targetPlaylistId]
-    const restoredOrRandomized = saved
-      ? saved
-      : [...currentList.songs].sort(() => Math.random() - 0.5)
 
-    const nextOriginalOrders = {...originalOrders}
     if (saved) {
+      const nextOriginalOrders = {...originalOrders}
       delete nextOriginalOrders[targetPlaylistId]
-    } else {
-      nextOriginalOrders[targetPlaylistId] = currentList.songs
+      set({originalOrders: nextOriginalOrders})
+      get().updatePlaylist({songs: saved}, targetPlaylistId)
+      return
     }
-    set({originalOrders: nextOriginalOrders})
+
+    const shuffled = [...currentList.songs].sort(() => Math.random() - 0.5)
+    set({
+      originalOrders: {
+        ...originalOrders,
+        [targetPlaylistId]: currentList.songs,
+      },
+    })
 
     if (playingPlaylistId === targetPlaylistId && currentSong) {
-      const filtered = restoredOrRandomized.filter(
-        (s) => s.id !== currentSong.id
-      )
+      const filtered = shuffled.filter((s) => s.id !== currentSong.id)
       get().updatePlaylist(
         {songs: [currentSong, ...filtered]},
         targetPlaylistId
       )
     } else {
-      get().updatePlaylist({songs: restoredOrRandomized}, targetPlaylistId)
+      get().updatePlaylist({songs: shuffled}, targetPlaylistId)
     }
   },
 

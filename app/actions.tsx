@@ -236,26 +236,26 @@ export async function updatePlaylistTitleAction(
 export async function toggleLikeAction(
   youtubeUrl: string,
   title: string,
-  thumbnail: string
+  thumbnail: string,
+  liked: boolean
 ) {
   const session = await auth()
   const userId = session?.user?.id
   if (!userId) return {success: false, error: '로그인이 필요합니다.'}
 
   try {
-    const existing = await db.likedSong.findUnique({
-      where: {userId_youtubeUrl: {userId, youtubeUrl}},
-    })
-
-    if (existing) {
-      await db.likedSong.delete({where: {id: existing.id}})
-      return {success: true, liked: false}
+    if (liked) {
+      await db.likedSong.upsert({
+        where: {userId_youtubeUrl: {userId, youtubeUrl}},
+        update: {},
+        create: {userId, youtubeUrl, title, thumbnail},
+      })
+    } else {
+      await db.likedSong.deleteMany({
+        where: {userId, youtubeUrl},
+      })
     }
-
-    await db.likedSong.create({
-      data: {userId, youtubeUrl, title, thumbnail},
-    })
-    return {success: true, liked: true}
+    return {success: true, liked}
   } catch (error: any) {
     return {success: false, error: error.message}
   }

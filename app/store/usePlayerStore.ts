@@ -9,6 +9,9 @@ import {
 export const playerRef: {current: any} = {current: null}
 export const pendingSongRef: {current: Song | null} = {current: null}
 
+// 같은 곡에 대한 좋아요 요청을 순서대로 처리하기 위한 곡별 요청 큐
+const likeRequestQueue = new Map<string, Promise<unknown>>()
+
 const extractVideoId = (url: string) => {
   const regExp =
     /^.*((youtu.be\/)|(v\/)|(\/u\/\w\/)|(embed\/)|(watch\?))\??v?=?([^#&?]*).*/
@@ -248,22 +251,45 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
   },
 
   toggleLike: async (song) => {
-    const {likedSongs} = get()
-    const isLiked = likedSongs.some((s) => s.youtubeUrl === song.youtubeUrl)
+    const wasLiked = get().likedSongs.some(
+      (s) => s.youtubeUrl === song.youtubeUrl
+    )
+    const nextLiked = !wasLiked
 
-    set({
-      likedSongs: isLiked
-        ? likedSongs.filter((s) => s.youtubeUrl !== song.youtubeUrl)
-        : [song, ...likedSongs],
+    set((state) => {
+      const others = state.likedSongs.filter(
+        (s) => s.youtubeUrl !== song.youtubeUrl
+      )
+      return {likedSongs: nextLiked ? [song, ...others] : others}
     })
 
-    const result = await toggleLikeAction(
-      song.youtubeUrl,
-      song.title,
-      song.thumbnail
-    )
-    if (!result.success) {
-      set({likedSongs})
-    }
+    // 같은 곡에 대한 이전 요청이 끝난 뒤에 이어서 보내 서버 도착 순서를 클릭 순서와 맞춘다
+    const previous = likeRequestQueue.get(song.youtubeUrl) ?? Promise.resolve()
+    const request = previous
+      .catch(() => {})
+      .then(() =>
+        toggleLikeAction(
+          song.youtubeUrl,
+          song.title,
+          song.thumbnail,
+          nextLiked
+        )
+      )
+      .then((result) => {
+        if (result.success) return
+        // 이 요청 이후에 더 최신 클릭이 없었을 때만 롤백 (최신 낙관적 업데이트를 덮어쓰지 않도록)
+        const current = get().likedSongs
+        const stillReflectsThisAttempt =
+          current.some((s) => s.youtubeUrl === song.youtubeUrl) === nextLiked
+        if (stillReflectsThisAttempt) {
+          set({
+            likedSongs: nextLiked
+              ? current.filter((s) => s.youtubeUrl !== song.youtubeUrl)
+              : [song, ...current],
+          })
+        }
+      })
+    likeRequestQueue.set(song.youtubeUrl, request)
+    await request
   },
 }))
